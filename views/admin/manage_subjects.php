@@ -15,7 +15,7 @@ $filieres = $filieres_stmt->fetchAll();
 
 // Liste des matières existantes avec le nom de la filière
 $subjects_stmt = $pdo->query("
-    SELECT m.id, m.nom, m.filiere_id, m.coefficient, m.seuil_validation, f.nom as filiere_nom 
+    SELECT m.id, m.nom, m.filiere_id, m.coefficient, m.seuil_validation, f.nom as filiere_nom, f.code as filiere_code 
     FROM matieres m 
     JOIN filieres f ON m.filiere_id = f.id 
     ORDER BY f.nom, m.nom
@@ -49,6 +49,7 @@ $matieres = $subjects_stmt->fetchAll();
                     <label for="nom">Nom de la matière</label>
                     <input type="text" id="nom" name="nom" required>
                 </div>
+
                 <div class="input-group">
                     <label for="filiere_id">Filière</label>
                     <select id="filiere_id" name="filiere_id" required>
@@ -78,6 +79,7 @@ $matieres = $subjects_stmt->fetchAll();
             <thead>
                 <tr>
                     <th>Nom</th>
+
                     <th>Filière</th>
                     <th>Coeff.</th>
                     <th>Seuil</th>
@@ -91,6 +93,7 @@ $matieres = $subjects_stmt->fetchAll();
                     <?php foreach ($matieres as $matiere): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($matiere['nom']); ?></td>
+
                             <td><?php echo htmlspecialchars($matiere['filiere_nom']); ?></td>
                             <td><?php echo htmlspecialchars($matiere['coefficient']); ?></td>
                             <td><?php echo htmlspecialchars($matiere['seuil_validation']); ?></td>

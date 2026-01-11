@@ -194,12 +194,13 @@ function handle_delete_filiere() {
 function handle_add_subject() {
     // Validation
     $nom = trim($_POST['nom'] ?? '');
+    $code = trim($_POST['code'] ?? '');
     $filiere_id = trim($_POST['filiere_id'] ?? '');
     $coefficient = trim($_POST['coefficient'] ?? '1');
     $seuil_validation = trim($_POST['seuil_validation'] ?? '10');
 
-    if (empty($nom) || empty($filiere_id)) {
-        $_SESSION['error_message'] = "Les champs nom, et filière sont obligatoires.";
+    if (empty($nom) || empty($code) || empty($filiere_id)) {
+        $_SESSION['error_message'] = "Les champs nom, code et filière sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=manage_subjects');
         exit;
     }
@@ -207,12 +208,13 @@ function handle_add_subject() {
     // Insertion BDD
     try {
         $pdo = getDBConnection();
-        $sql = "INSERT INTO matieres (nom, filiere_id, coefficient, seuil_validation) 
-                VALUES (:nom, :filiere_id, :coefficient, :seuil_validation)";
+        $sql = "INSERT INTO matieres (nom, code, filiere_id, coefficient, seuil_validation) 
+                VALUES (:nom, :code, :filiere_id, :coefficient, :seuil_validation)";
         $stmt = $pdo->prepare($sql);
         
         $stmt->execute([
             ':nom' => $nom,
+            ':code' => $code,
             ':filiere_id' => $filiere_id,
             ':coefficient' => $coefficient,
             ':seuil_validation' => $seuil_validation
@@ -241,11 +243,12 @@ function handle_update_subject() {
     // Validation
     $matiere_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
     $nom = trim($_POST['nom'] ?? '');
+    $code = trim($_POST['code'] ?? '');
     $filiere_id = trim($_POST['filiere_id'] ?? '');
     $coefficient = trim($_POST['coefficient'] ?? '1');
     $seuil_validation = trim($_POST['seuil_validation'] ?? '10');
 
-    if (!$matiere_id || empty($nom) || empty($filiere_id)) {
+    if (!$matiere_id || empty($nom) || empty($code) || empty($filiere_id)) {
         $_SESSION['error_message'] = "Tous les champs sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=edit_subject&id=' . $matiere_id);
         exit;
@@ -254,11 +257,12 @@ function handle_update_subject() {
     // Mise à jour BDD
     try {
         $pdo = getDBConnection();
-        $sql = "UPDATE matieres SET nom = :nom, filiere_id = :filiere_id, coefficient = :coefficient, seuil_validation = :seuil_validation WHERE id = :id";
+        $sql = "UPDATE matieres SET nom = :nom, code = :code, filiere_id = :filiere_id, coefficient = :coefficient, seuil_validation = :seuil_validation WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         
         $stmt->execute([
             ':nom' => $nom,
+            ':code' => $code,
             ':filiere_id' => $filiere_id,
             ':coefficient' => $coefficient,
             ':seuil_validation' => $seuil_validation,

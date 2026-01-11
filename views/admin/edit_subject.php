@@ -47,6 +47,7 @@ $filieres = $filieres_stmt->fetchAll();
                     <label for="nom">Nom de la matière</label>
                     <input type="text" id="nom" name="nom" value="<?php echo htmlspecialchars($matiere['nom']); ?>" required>
                 </div>
+
                 <div class="input-group">
                     <label for="filiere_id">Filière</label>
                     <select id="filiere_id" name="filiere_id" required>

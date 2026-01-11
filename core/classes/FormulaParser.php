@@ -120,6 +120,7 @@ class FormulaParser {
                 }
                 $operators[] = ['type' => 'operator', 'value' => $token];
             } elseif ($token === '(') {
+                error_log("FormulaParser: Processing '('. Token: $token, Operators: " . print_r($operators, true));
                 // If the token before was a function, this is a function call
                 if (!empty($operators) && end($operators)['type'] === 'function') {
                     $operators[] = ['type' => 'paren_func', 'value' => '('];
