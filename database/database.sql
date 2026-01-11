@@ -16,7 +16,6 @@ CREATE TABLE utilisateurs (
 CREATE TABLE periodes (
     id                  INT PRIMARY KEY AUTO_INCREMENT,
     nom                 VARCHAR(100) NOT NULL,
-    code                VARCHAR(20) UNIQUE NOT NULL,  -- "S1-2024", "RAT-2025"
     annee_universitaire VARCHAR(9) NOT NULL,  -- "2024-2025"
     type                ENUM('semestre', 'trimestre', 'session', 'rattrapage') NOT NULL,
     date_debut_saisie   DATETIME NOT NULL,
@@ -30,7 +29,6 @@ CREATE TABLE periodes (
 -- TABLE DES FILIÈRES
 CREATE TABLE filieres (
     id                  INT PRIMARY KEY AUTO_INCREMENT,
-    code                VARCHAR(20) UNIQUE NOT NULL,
     nom                 VARCHAR(150) NOT NULL,
     niveau              VARCHAR(20),  -- "Licence", "Master"
     responsable_id      INT,
@@ -42,13 +40,13 @@ CREATE TABLE filieres (
 -- TABLE DES MATIÈRES
 CREATE TABLE matieres (
     id                  INT PRIMARY KEY AUTO_INCREMENT,
-    code                VARCHAR(20) UNIQUE NOT NULL,
     nom                 VARCHAR(150) NOT NULL,
     filiere_id          INT NOT NULL,
     coefficient         DECIMAL(3,1) DEFAULT 1,
     seuil_validation    DECIMAL(4,2) DEFAULT 10,
     date_creation       TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (filiere_id) REFERENCES filieres(id) ON DELETE CASCADE
+    FOREIGN KEY (filiere_id) REFERENCES filieres(id) ON DELETE CASCADE,
+    UNIQUE KEY UQ_matieres_nom_filiere (nom, filiere_id)
 );
 
 -- =============================================
@@ -211,6 +209,9 @@ CREATE TABLE templates_formules (
 -- =============================================
 -- DONNÉES INITIALES
 -- =============================================
+INSERT INTO utilisateurs (nom, prenom, email, mot_de_passe, role) VALUES
+('Super', 'Admin', 'admin@uemf.com', '$2y$10$0k4M5eT8X.T.Z.W.3.A.9.2.6.2.8.5.3.7.1.5.0.0.1.2', 'admin');
+
 INSERT INTO templates_formules (nom, description, colonnes_requises, formule, categorie) VALUES
 ('Moyenne simple', 'Moyenne arithmétique de toutes les notes', 
  '["Note1", "Note2"]', 'MOYENNE(Note1, Note2)', 'Standard'),

@@ -6,7 +6,7 @@ $pdo = getDBConnection();
 
 // Fetch filieres and their responsables in one query
 $stmt = $pdo->query("
-    SELECT f.id, f.nom, f.code, f.niveau, u.prenom AS resp_prenom, u.nom AS resp_nom
+    SELECT f.id, f.nom, f.niveau, u.prenom AS resp_prenom, u.nom AS resp_nom
     FROM filieres f
     LEFT JOIN utilisateurs u ON f.responsable_id = u.id
     ORDER BY f.nom
@@ -43,10 +43,7 @@ $responsables = $users_stmt->fetchAll();
                     <label for="nom">Nom de la filière</label>
                     <input type="text" id="nom" name="nom" required>
                 </div>
-                <div class="input-group">
-                    <label for="code">Code de la filière</label>
-                    <input type="text" id="code" name="code" required>
-                </div>
+
                 <div class="input-group">
                     <label for="niveau">Niveau</label>
                     <input type="text" id="niveau" name="niveau">
@@ -72,7 +69,7 @@ $responsables = $users_stmt->fetchAll();
             <thead>
                 <tr>
                     <th>Nom</th>
-                    <th>Code</th>
+
                     <th>Niveau</th>
                     <th>Responsable</th>
                     <th>Actions</th>
@@ -85,7 +82,7 @@ $responsables = $users_stmt->fetchAll();
                     <?php foreach ($filieres as $filiere): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($filiere['nom']); ?></td>
-                            <td><?php echo htmlspecialchars($filiere['code']); ?></td>
+
                             <td><?php echo htmlspecialchars($filiere['niveau']); ?></td>
                             <td><?php
                                 if (!empty($filiere['resp_prenom'])) {

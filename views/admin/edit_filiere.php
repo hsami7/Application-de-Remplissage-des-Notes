@@ -13,7 +13,7 @@ if (!$filiere_id) {
 }
 
 // Récupérer les détails de la filière
-$stmt = $pdo->prepare("SELECT id, nom, code, niveau, responsable_id FROM filieres WHERE id = ?");
+$stmt = $pdo->prepare("SELECT id, nom, niveau, responsable_id FROM filieres WHERE id = ?");
 $stmt->execute([$filiere_id]);
 $filiere = $stmt->fetch();
 
@@ -52,10 +52,7 @@ $responsables = $users_stmt->fetchAll();
                     <label for="nom">Nom de la filière</label>
                     <input type="text" id="nom" name="nom" value="<?php echo htmlspecialchars($filiere['nom']); ?>" required>
                 </div>
-                <div class="input-group">
-                    <label for="code">Code de la filière</label>
-                    <input type="text" id="code" name="code" value="<?php echo htmlspecialchars($filiere['code']); ?>" required>
-                </div>
+
                 <div class="input-group">
                     <label for="niveau">Niveau</label>
                     <input type="text" id="niveau" name="niveau" value="<?php echo htmlspecialchars($filiere['niveau']); ?>">

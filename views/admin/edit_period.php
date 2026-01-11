@@ -11,7 +11,7 @@ if (!$periode_id) {
     exit;
 }
 
-$stmt = $pdo->prepare("SELECT id, nom, code, annee_universitaire, type, date_debut_saisie, date_fin_saisie, statut FROM periodes WHERE id = ?");
+$stmt = $pdo->prepare("SELECT id, nom, annee_universitaire, type, date_debut_saisie, date_fin_saisie, statut FROM periodes WHERE id = ?");
 $stmt->execute([$periode_id]);
 $periode = $stmt->fetch();
 
@@ -46,10 +46,7 @@ if (!$periode) {
                     <label for="nom">Nom de la période</label>
                     <input type="text" id="nom" name="nom" value="<?php echo htmlspecialchars($periode['nom']); ?>" required>
                 </div>
-                <div class="input-group">
-                    <label for="code">Code de la période</label>
-                    <input type="text" id="code" name="code" value="<?php echo htmlspecialchars($periode['code']); ?>" required>
-                </div>
+
                 <div class="input-group">
                     <label for="annee_universitaire">Année Universitaire (AAAA-AAAA)</label>
                     <input type="text" id="annee_universitaire" name="annee_universitaire" pattern="\d{4}-\d{4}" value="<?php echo htmlspecialchars($periode['annee_universitaire']); ?>" required>

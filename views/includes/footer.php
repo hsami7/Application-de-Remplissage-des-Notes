@@ -1,7 +1,7 @@
    </main>
 
     <footer class="footer">
-        <p>&copy; <?php echo date('Y'); ?> - <?php echo APP_NAME; ?> - Un projet étudiant.</p>
+        <p>&copy; <?php echo date('Y'); ?> - <?php echo APP_NAME; ?></p>
     </footer>
 
 </div> <!-- Fin de .main-container -->

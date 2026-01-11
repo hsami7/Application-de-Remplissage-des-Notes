@@ -3,7 +3,7 @@
 authorize_user(['admin']);
 
 $pdo = getDBConnection();
-$stmt = $pdo->query("SELECT id, nom, code, annee_universitaire, type, date_debut_saisie, date_fin_saisie, statut FROM periodes ORDER BY annee_universitaire DESC, nom ASC");
+$stmt = $pdo->query("SELECT id, nom, annee_universitaire, type, date_debut_saisie, date_fin_saisie, statut FROM periodes ORDER BY annee_universitaire DESC, nom ASC");
 $periodes = $stmt->fetchAll();
 
 ?>
@@ -32,10 +32,7 @@ $periodes = $stmt->fetchAll();
                     <label for="nom">Nom de la période</label>
                     <input type="text" id="nom" name="nom" required>
                 </div>
-                <div class="input-group">
-                    <label for="code">Code de la période</label>
-                    <input type="text" id="code" name="code" required>
-                </div>
+
                 <div class="input-group">
                     <label for="annee_universitaire">Année Universitaire (AAAA-AAAA)</label>
                     <input type="text" id="annee_universitaire" name="annee_universitaire" pattern="\d{4}-\d{4}" placeholder="ex: 2024-2025" required>
@@ -69,7 +66,7 @@ $periodes = $stmt->fetchAll();
             <thead>
                 <tr>
                     <th>Nom</th>
-                    <th>Code</th>
+
                     <th>Année Universitaire</th>
                     <th>Type</th>
                     <th>Début Saisie</th>
@@ -85,7 +82,7 @@ $periodes = $stmt->fetchAll();
                     <?php foreach ($periodes as $periode): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($periode['nom']); ?></td>
-                            <td><?php echo htmlspecialchars($periode['code']); ?></td>
+
                             <td><?php echo htmlspecialchars($periode['annee_universitaire']); ?></td>
                             <td><?php echo htmlspecialchars($periode['type']); ?></td>
                             <td><?php echo htmlspecialchars($periode['date_debut_saisie']); ?></td>

@@ -15,7 +15,7 @@ $filieres = $filieres_stmt->fetchAll();
 
 // Liste des matières existantes avec le nom de la filière
 $subjects_stmt = $pdo->query("
-    SELECT m.id, m.nom, m.filiere_id, m.coefficient, m.seuil_validation, f.nom as filiere_nom, f.code as filiere_code 
+    SELECT m.id, m.nom, m.filiere_id, m.coefficient, m.seuil_validation, f.nom as filiere_nom 
     FROM matieres m 
     JOIN filieres f ON m.filiere_id = f.id 
     ORDER BY f.nom, m.nom

@@ -7,13 +7,12 @@
 function handle_add_period() {
     // --- 1. Validation des données ---
     $nom = trim($_POST['nom'] ?? '');
-    $code = trim($_POST['code'] ?? '');
     $annee = trim($_POST['annee_universitaire'] ?? '');
     $type = trim($_POST['type'] ?? '');
     $date_debut = trim($_POST['date_debut_saisie'] ?? '');
     $date_fin = trim($_POST['date_fin_saisie'] ?? '');
 
-    if (empty($nom) || empty($code) || empty($annee) || empty($type) || empty($date_debut) || empty($date_fin)) {
+    if (empty($nom) || empty($annee) || empty($type) || empty($date_debut) || empty($date_fin)) {
         $_SESSION['error_message'] = "Tous les champs sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=manage_periods');
         exit;
@@ -29,14 +28,13 @@ function handle_add_period() {
     // --- 2. Insertion dans la base de données ---
     try {
         $pdo = getDBConnection();
-        $sql = "INSERT INTO periodes (nom, code, annee_universitaire, type, date_debut_saisie, date_fin_saisie) 
-                VALUES (:nom, :code, :annee, :type, :date_debut, :date_fin)";
+        $sql = "INSERT INTO periodes (nom, annee_universitaire, type, date_debut_saisie, date_fin_saisie) 
+                VALUES (:nom, :annee, :type, :date_debut, :date_fin)";
         
         $stmt = $pdo->prepare($sql);
         
         $stmt->execute([
             ':nom' => $nom,
-            ':code' => $code,
             ':annee' => $annee,
             ':type' => $type,
             ':date_debut' => $date_debut,
@@ -48,7 +46,7 @@ function handle_add_period() {
     } catch (PDOException $e) {
         // Gérer les erreurs de BDD, notamment les codes uniques
         if ($e->errorInfo[1] == 1062) { // Code d'erreur pour entrée dupliquée
-            $_SESSION['error_message'] = "Erreur : Le code de période '" . htmlspecialchars($code) . "' existe déjà.";
+            $_SESSION['error_message'] = "Erreur : La période '" . htmlspecialchars($nom) . "' existe déjà.";
         } else {
             $_SESSION['error_message'] = "Une erreur de base de données est survenue. " . (DEBUG_MODE ? $e->getMessage() : "");
         }
@@ -65,12 +63,11 @@ function handle_add_period() {
 function handle_add_filiere() {
     // Validation
     $nom = trim($_POST['nom'] ?? '');
-    $code = trim($_POST['code'] ?? '');
     $niveau = trim($_POST['niveau'] ?? '');
     $responsable_id = trim($_POST['responsable_id'] ?? '');
 
-    if (empty($nom) || empty($code) || empty($niveau)) {
-        $_SESSION['error_message'] = "Les champs nom, code et niveau sont obligatoires.";
+    if (empty($nom) || empty($niveau)) {
+        $_SESSION['error_message'] = "Les champs nom et niveau sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=manage_filieres');
         exit;
     }
@@ -78,12 +75,11 @@ function handle_add_filiere() {
     // Insertion BDD
     try {
         $pdo = getDBConnection();
-        $sql = "INSERT INTO filieres (nom, code, niveau, responsable_id) VALUES (:nom, :code, :niveau, :responsable_id)";
+        $sql = "INSERT INTO filieres (nom, niveau, responsable_id) VALUES (:nom, :niveau, :responsable_id)";
         $stmt = $pdo->prepare($sql);
         
         $stmt->execute([
             ':nom' => $nom,
-            ':code' => $code,
             ':niveau' => $niveau,
             ':responsable_id' => !empty($responsable_id) ? $responsable_id : null
         ]);
@@ -110,12 +106,11 @@ function handle_update_filiere() {
     // Validation
     $filiere_id = filter_input(INPUT_POST, 'filiere_id', FILTER_VALIDATE_INT);
     $nom = trim($_POST['nom'] ?? '');
-    $code = trim($_POST['code'] ?? '');
     $niveau = trim($_POST['niveau'] ?? '');
     $responsable_id = trim($_POST['responsable_id'] ?? '');
 
-    if (!$filiere_id || empty($nom) || empty($code) || empty($niveau)) {
-        $_SESSION['error_message'] = "Tous les champs sont obligatoires.";
+    if (!$filiere_id || empty($nom) || empty($niveau)) {
+        $_SESSION['error_message'] = "Les champs nom et niveau sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=edit_filiere&id=' . $filiere_id);
         exit;
     }
@@ -123,12 +118,11 @@ function handle_update_filiere() {
     // Mise à jour BDD
     try {
         $pdo = getDBConnection();
-        $sql = "UPDATE filieres SET nom = :nom, code = :code, niveau = :niveau, responsable_id = :responsable_id WHERE id = :id";
+        $sql = "UPDATE filieres SET nom = :nom, niveau = :niveau, responsable_id = :responsable_id WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         
         $stmt->execute([
             ':nom' => $nom,
-            ':code' => $code,
             ':niveau' => $niveau,
             ':responsable_id' => !empty($responsable_id) ? $responsable_id : null,
             ':id' => $filiere_id
@@ -194,13 +188,12 @@ function handle_delete_filiere() {
 function handle_add_subject() {
     // Validation
     $nom = trim($_POST['nom'] ?? '');
-    $code = trim($_POST['code'] ?? '');
     $filiere_id = trim($_POST['filiere_id'] ?? '');
     $coefficient = trim($_POST['coefficient'] ?? '1');
     $seuil_validation = trim($_POST['seuil_validation'] ?? '10');
 
-    if (empty($nom) || empty($code) || empty($filiere_id)) {
-        $_SESSION['error_message'] = "Les champs nom, code et filière sont obligatoires.";
+    if (empty($nom) || empty($filiere_id)) {
+        $_SESSION['error_message'] = "Les champs nom et filière sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=manage_subjects');
         exit;
     }
@@ -208,24 +201,22 @@ function handle_add_subject() {
     // Insertion BDD
     try {
         $pdo = getDBConnection();
-        $sql = "INSERT INTO matieres (nom, code, filiere_id, coefficient, seuil_validation) 
-                VALUES (:nom, :code, :filiere_id, :coefficient, :seuil_validation)";
+        $sql = "INSERT INTO matieres (nom, filiere_id, coefficient, seuil_validation) 
+                VALUES (:nom, :filiere_id, :coefficient, :seuil_validation)";
         $stmt = $pdo->prepare($sql);
         
         $stmt->execute([
             ':nom' => $nom,
-            ':code' => $code,
             ':filiere_id' => $filiere_id,
             ':coefficient' => $coefficient,
             ':seuil_validation' => $seuil_validation
         ]);
 
-
         $_SESSION['success_message'] = "La matière '" . htmlspecialchars($nom) . "' a été ajoutée.";
 
     } catch (PDOException $e) {
         if ($e->errorInfo[1] == 1062) {
-            $_SESSION['error_message'] = "Erreur : Le nom de matière '" . htmlspecialchars($nom) . "' existe déjà.";
+            $_SESSION['error_message'] = "Erreur : La matière '" . htmlspecialchars($nom) . "' existe déjà pour cette filière.";
         } else {
             $_SESSION['error_message'] = "Erreur BDD: " . (DEBUG_MODE ? $e->getMessage() : "Contactez un admin.");
         }
@@ -243,13 +234,12 @@ function handle_update_subject() {
     // Validation
     $matiere_id = filter_input(INPUT_POST, 'id', FILTER_VALIDATE_INT);
     $nom = trim($_POST['nom'] ?? '');
-    $code = trim($_POST['code'] ?? '');
     $filiere_id = trim($_POST['filiere_id'] ?? '');
     $coefficient = trim($_POST['coefficient'] ?? '1');
     $seuil_validation = trim($_POST['seuil_validation'] ?? '10');
 
-    if (!$matiere_id || empty($nom) || empty($code) || empty($filiere_id)) {
-        $_SESSION['error_message'] = "Tous les champs sont obligatoires.";
+    if (!$matiere_id || empty($nom) || empty($filiere_id)) {
+        $_SESSION['error_message'] = "Les champs nom et filière sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=edit_subject&id=' . $matiere_id);
         exit;
     }
@@ -257,12 +247,11 @@ function handle_update_subject() {
     // Mise à jour BDD
     try {
         $pdo = getDBConnection();
-        $sql = "UPDATE matieres SET nom = :nom, code = :code, filiere_id = :filiere_id, coefficient = :coefficient, seuil_validation = :seuil_validation WHERE id = :id";
+        $sql = "UPDATE matieres SET nom = :nom, filiere_id = :filiere_id, coefficient = :coefficient, seuil_validation = :seuil_validation WHERE id = :id";
         $stmt = $pdo->prepare($sql);
         
         $stmt->execute([
             ':nom' => $nom,
-            ':code' => $code,
             ':filiere_id' => $filiere_id,
             ':coefficient' => $coefficient,
             ':seuil_validation' => $seuil_validation,
@@ -273,7 +262,7 @@ function handle_update_subject() {
 
     } catch (PDOException $e) {
         if ($e->errorInfo[1] == 1062) {
-            $_SESSION['error_message'] = "Erreur : Le nom de matière '" . htmlspecialchars($nom) . "' existe déjà.";
+            $_SESSION['error_message'] = "Erreur : La matière '" . htmlspecialchars($nom) . "' existe déjà pour cette filière.";
         } else {
             $_SESSION['error_message'] = "Erreur BDD: " . (DEBUG_MODE ? $e->getMessage() : "Contactez un admin.");
         }
@@ -772,13 +761,12 @@ function handle_update_period() {
     // Validation
     $periode_id = filter_input(INPUT_POST, 'periode_id', FILTER_VALIDATE_INT);
     $nom = trim($_POST['nom'] ?? '');
-    $code = trim($_POST['code'] ?? '');
     $annee = trim($_POST['annee_universitaire'] ?? '');
     $type = trim($_POST['type'] ?? '');
     $date_debut = trim($_POST['date_debut_saisie'] ?? '');
     $date_fin = trim($_POST['date_fin_saisie'] ?? '');
 
-    if (!$periode_id || empty($nom) || empty($code) || empty($annee) || empty($type) || empty($date_debut) || empty($date_fin)) {
+    if (!$periode_id || empty($nom) || empty($annee) || empty($type) || empty($date_debut) || empty($date_fin)) {
         $_SESSION['error_message'] = "Tous les champs sont obligatoires.";
         header('Location: ' . APP_URL . '/index.php?page=edit_period&id=' . $periode_id);
         exit;
@@ -787,9 +775,9 @@ function handle_update_period() {
     // Mise à jour BDD
     try {
         $pdo = getDBConnection();
-        $sql = "UPDATE periodes SET nom = ?, code = ?, annee_universitaire = ?, type = ?, date_debut_saisie = ?, date_fin_saisie = ? WHERE id = ?";
+        $sql = "UPDATE periodes SET nom = ?, annee_universitaire = ?, type = ?, date_debut_saisie = ?, date_fin_saisie = ? WHERE id = ?";
         $stmt = $pdo->prepare($sql);
-        $stmt->execute([$nom, $code, $annee, $type, $date_debut, $date_fin, $periode_id]);
+        $stmt->execute([$nom, $annee, $type, $date_debut, $date_fin, $periode_id]);
 
         $_SESSION['success_message'] = "La période a été mise à jour avec succès.";
         header('Location: ' . APP_URL . '/index.php?page=manage_periods');
