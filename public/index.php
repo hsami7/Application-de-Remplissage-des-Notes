@@ -39,6 +39,7 @@ if ($action) {
         'update_user' => '../core/actions/admin_actions.php',
         'delete_user' => '../core/actions/admin_actions.php',
         'calculate_averages' => '../core/actions/admin_actions.php',
+        'unlock_grades' => '../core/actions/admin_actions.php',
 
         // Professor Actions
         'save_grades' => '../core/actions/prof_actions.php',
@@ -79,6 +80,7 @@ if ($action) {
             case 'update_user': handle_update_user(); break;
             case 'delete_user': handle_delete_user(); break;
             case 'calculate_averages': handle_calculate_averages(); break;
+            case 'unlock_grades': handle_unlock_grades(); break;
 
             // Professor
             case 'save_grades': handle_save_grades(); break;

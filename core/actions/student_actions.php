@@ -238,7 +238,7 @@ function handle_generate_transcript() {
             $data_for_pdf[] = [
                 mb_convert_encoding($grade['matiere_nom'], 'ISO-8859-1', 'UTF-8'),
                 mb_convert_encoding(number_format($grade['moyenne'] ?? 0, 2, ',', ' '), 'ISO-8859-1', 'UTF-8'),
-                mb_convert_encoding(ucwords(str_replace('_', ' ', $grade['statut_validation'] ?? 'Non validée')), 'ISO-8859-1', 'UTF-8')
+                mb_convert_encoding(ucwords(str_replace('_', ' ', $grade['decision'] ?? 'Non Valide')), 'ISO-8859-1', 'UTF-8')
             ];
         }
 

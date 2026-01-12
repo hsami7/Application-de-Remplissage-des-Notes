@@ -88,8 +88,14 @@ $progress_data = $stmt->fetchAll();
                                 </td>
                                 <td><?php echo htmlspecialchars($progress['date_mise_a_jour']); ?></td>
                                 <td>
-                                    <!-- Add actions like "Voir Détails", "Forcer Validation" -->
-                                    <button class="action-btn edit">Détails</button>
+                                    <?php if ($progress['valide_par_prof']): ?>
+                                        <form action="<?php echo APP_URL; ?>/index.php?action=unlock_grades" method="POST" style="display:inline;">
+                                            <input type="hidden" name="progression_id" value="<?php echo $progress['id']; ?>">
+                                            <button type="submit" class="action-btn delete" onclick="return confirm('Êtes-vous sûr de vouloir déverrouiller la saisie pour cette matière ? Le professeur pourra de nouveau modifier les notes.');">Déverrouiller</button>
+                                        </form>
+                                    <?php else: ?>
+                                        <button class="action-btn edit" disabled>Détails</button>
+                                    <?php endif; ?>
                                 </td>
                             </tr>
                         <?php endforeach; ?>

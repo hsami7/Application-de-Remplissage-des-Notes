@@ -115,77 +115,113 @@ function handle_validate_grades() {
     $periode_id = filter_input(INPUT_POST, 'periode_id', FILTER_VALIDATE_INT);
     $matiere_id = filter_input(INPUT_POST, 'matiere_id', FILTER_VALIDATE_INT);
 
-    $redirect_url = APP_URL . "/index.php?page=enter_grades&periode_id=$periode_id&matiere_id=$matiere_id";
+    $redirect_url = APP_URL . "/index.php?page=prof_validation&periode_id=$periode_id&matiere_id=$matiere_id";
 
     if (!$periode_id || !$matiere_id) {
-        header('Location: ' . APP_URL . '/index.php?page=enter_grades');
+        header('Location: ' . APP_URL . '/index.php?page=prof_subjects');
         exit;
     }
 
-    // Vérification de la complétude
-    try {
-        $pdo = getDBConnection();
+    $pdo = getDBConnection();
 
-        // Vérifier que le professeur est bien affecté à cette matière pour cette période.
+    try {
+        $pdo->beginTransaction();
+
+        // 1. Autorisation
         $stmt_check_auth = $pdo->prepare("SELECT id FROM affectations_profs WHERE professeur_id = ? AND matiere_id = ? AND periode_id = ?");
         $stmt_check_auth->execute([$prof_id, $matiere_id, $periode_id]);
         if ($stmt_check_auth->rowCount() == 0) {
             throw new Exception("Vous n'êtes pas autorisé à valider les notes pour cette matière.");
         }
+
+        // 2. Vérification de la complétude
+        $stmt_etudiants_count = $pdo->prepare("SELECT COUNT(*) FROM inscriptions_matieres WHERE matiere_id = ? AND periode_id = ?");
+        $stmt_etudiants_count->execute([$matiere_id, $periode_id]);
+        $nombre_etudiants = $stmt_etudiants_count->fetchColumn();
+
+        $stmt_colonnes_count = $pdo->prepare("SELECT COUNT(*) FROM configuration_colonnes WHERE matiere_id = ? AND periode_id = ?");
+        $stmt_colonnes_count->execute([$matiere_id, $periode_id]);
+        $nombre_colonnes = $stmt_colonnes_count->fetchColumn();
         
-        // Compter le nombre de notes attendues de manière fiable
-        $stmt_etudiants = $pdo->prepare("SELECT COUNT(*) FROM inscriptions_matieres WHERE matiere_id = ? AND periode_id = ?");
-        $stmt_etudiants->execute([$matiere_id, $periode_id]);
-        $nombre_etudiants = $stmt_etudiants->fetchColumn();
-
-        $stmt_colonnes = $pdo->prepare("SELECT COUNT(*) FROM configuration_colonnes WHERE matiere_id = ? AND periode_id = ?");
-        $stmt_colonnes->execute([$matiere_id, $periode_id]);
-        $nombre_colonnes = $stmt_colonnes->fetchColumn();
-
         $notes_attendues = $nombre_etudiants * $nombre_colonnes;
 
-        // Compter le nombre de notes saisies
-        $stmt_saisies = $pdo->prepare("
-            SELECT COUNT(id)
-            FROM notes
-            WHERE colonne_id IN (SELECT id FROM configuration_colonnes WHERE matiere_id = ? AND periode_id = ?)
-        ");
-        $stmt_saisies->execute([$matiere_id, $periode_id]);
-        $notes_saisies = $stmt_saisies->fetchColumn();
-        
+        $stmt_saisies_count = $pdo->prepare("SELECT COUNT(id) FROM notes WHERE colonne_id IN (SELECT id FROM configuration_colonnes WHERE matiere_id = ? AND periode_id = ?)");
+        $stmt_saisies_count->execute([$matiere_id, $periode_id]);
+        $notes_saisies = $stmt_saisies_count->fetchColumn();
+
         if ($notes_saisies < $notes_attendues) {
-            $_SESSION['error_message'] = "Validation impossible : il manque des notes. (" . $notes_saisies . "/" . $notes_attendues . " saisies)";
-            // Redirect to the new validation page for better context
-            header('Location: ' . APP_URL . "/index.php?page=prof_validation");
-            exit;
+            throw new Exception("Validation impossible : il manque des notes. (" . $notes_saisies . "/" . $notes_attendues . " saisies)");
+        }
+        
+        // 3. Calcul des moyennes (logique copiée et adaptée de admin_actions)
+        require_once '../core/classes/FormulaParser.php';
+        $parser = new FormulaParser();
+
+        $stmt_formule = $pdo->prepare("SELECT formule FROM formules WHERE matiere_id = ? AND periode_id = ?");
+        $stmt_formule->execute([$matiere_id, $periode_id]);
+        $formule = $stmt_formule->fetchColumn();
+
+        if (!$formule) {
+            throw new Exception("Calcul impossible : aucune formule n'est définie pour cette matière.");
+        }
+        
+        $stmt_cols = $pdo->prepare("SELECT code_colonne FROM configuration_colonnes WHERE matiere_id = ? AND periode_id = ?");
+        $stmt_cols->execute([$matiere_id, $periode_id]);
+        $codes_colonnes = $stmt_cols->fetchAll(PDO::FETCH_COLUMN);
+
+        $stmt_etudiants_ids = $pdo->prepare("SELECT etudiant_id FROM inscriptions_matieres WHERE matiere_id = ? AND periode_id = ?");
+        $stmt_etudiants_ids->execute([$matiere_id, $periode_id]);
+        $etudiant_ids = $stmt_etudiants_ids->fetchAll(PDO::FETCH_COLUMN);
+
+        foreach ($etudiant_ids as $etudiant_id) {
+            $stmt_notes = $pdo->prepare("SELECT cc.code_colonne, n.valeur, n.statut FROM notes n JOIN configuration_colonnes cc ON n.colonne_id = cc.id WHERE n.etudiant_id = ? AND cc.matiere_id = ? AND cc.periode_id = ?");
+            $stmt_notes->execute([$etudiant_id, $matiere_id, $periode_id]);
+            $notes_raw = $stmt_notes->fetchAll(PDO::FETCH_ASSOC);
+            
+            $notes_for_parser = array_fill_keys($codes_colonnes, null);
+            foreach ($notes_raw as $note) {
+                $notes_for_parser[$note['code_colonne']] = ($note['statut'] === 'saisie') ? $note['valeur'] : strtoupper($note['statut']);
+            }
+
+            $moyenne = $parser->evaluer($formule, $notes_for_parser); 
+
+            $stmt_check_moyenne = $pdo->prepare("SELECT id FROM moyennes WHERE etudiant_id = ? AND matiere_id = ? AND periode_id = ?");
+            $stmt_check_moyenne->execute([$etudiant_id, $matiere_id, $periode_id]);
+            $exists = $stmt_check_moyenne->fetch();
+
+            if ($exists) {
+                $stmt_update_moyenne = $pdo->prepare("UPDATE moyennes SET moyenne = ?, statut_validation = 'non_validée' WHERE id = ?");
+                $stmt_update_moyenne->execute([$moyenne, $exists['id']]);
+            } else {
+                $stmt_insert_moyenne = $pdo->prepare("INSERT INTO moyennes (etudiant_id, matiere_id, periode_id, moyenne, statut_validation) VALUES (?, ?, ?, ?, 'non_validée')");
+                $stmt_insert_moyenne->execute([$etudiant_id, $matiere_id, $periode_id, $moyenne]);
+            }
         }
 
-        // Mettre à jour la table de progression
-        // UPSERT
-        $stmt_check = $pdo->prepare("SELECT id FROM progression_saisie WHERE matiere_id = ? AND periode_id = ? AND professeur_id = ?");
-        $stmt_check->execute([$matiere_id, $periode_id, $prof_id]);
-        $exists = $stmt_check->fetch();
+        // 4. Mettre à jour la table de progression
+        $stmt_check_prog = $pdo->prepare("SELECT id FROM progression_saisie WHERE matiere_id = ? AND periode_id = ? AND professeur_id = ?");
+        $stmt_check_prog->execute([$matiere_id, $periode_id, $prof_id]);
+        $exists_prog = $stmt_check_prog->fetch();
         
-        if($exists) {
-            $sql = "UPDATE progression_saisie SET valide_par_prof = TRUE, date_validation = NOW() WHERE id = ?";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$exists['id']]);
+        if($exists_prog) {
+            $stmt_update_prog = $pdo->prepare("UPDATE progression_saisie SET valide_par_prof = TRUE, date_validation = NOW() WHERE id = ?");
+            $stmt_update_prog->execute([$exists_prog['id']]);
         } else {
-            // total_etudiants and notes_saisies were not accurately filled before
-            $sql = "INSERT INTO progression_saisie (matiere_id, periode_id, professeur_id, total_etudiants, total_notes_attendues, notes_saisies, pourcentage, valide_par_prof, date_validation)
-                    VALUES (?, ?, ?, ?, ?, ?, 100, TRUE, NOW())";
-            $stmt = $pdo->prepare($sql);
-            $stmt->execute([$matiere_id, $periode_id, $prof_id, $nombre_etudiants, $notes_attendues, $notes_saisies]);
+            $stmt_insert_prog = $pdo->prepare("INSERT INTO progression_saisie (matiere_id, periode_id, professeur_id, total_etudiants, total_notes_attendues, notes_saisies, pourcentage, valide_par_prof, date_validation) VALUES (?, ?, ?, ?, ?, ?, 100, TRUE, NOW())");
+            $stmt_insert_prog->execute([$matiere_id, $periode_id, $prof_id, $nombre_etudiants, $notes_attendues, $notes_saisies]);
         }
         
-        $_SESSION['success_message'] = "La saisie a été validée avec succès et est maintenant verrouillée.";
+        $pdo->commit();
+        $_SESSION['success_message'] = "La saisie a été validée et les moyennes ont été calculées avec succès.";
 
     } catch (Exception $e) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
         $_SESSION['error_message'] = "Erreur : " . $e->getMessage();
     }
 
-    // Redirection
-    header('Location: ' . APP_URL . "/index.php?page=prof_validation");
+    header('Location: ' . $redirect_url);
     exit;
 }
 

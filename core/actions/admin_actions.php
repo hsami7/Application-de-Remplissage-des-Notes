@@ -861,13 +861,11 @@ function handle_calculate_averages() {
     $periode_id = filter_input(INPUT_POST, 'periode_id', FILTER_VALIDATE_INT);
     $matiere_id = filter_input(INPUT_POST, 'matiere_id', FILTER_VALIDATE_INT);
 
-    // This redirect URL was previously dependent on 'manage_formulas' which will be restored
     $redirect_url = APP_URL . "/index.php?page=manage_formulas&periode_id=$periode_id&matiere_id=$matiere_id";
 
     if (!$periode_id || !$matiere_id) {
         $_SESSION['error_message'] = "Les champs période et matière sont obligatoires pour le calcul des moyennes.";
-        // Redirect to a more generic page if manage_formulas isn't available yet
-        header('Location: ' . $redirect_url); // Redirect to manage_formulas
+        header('Location: ' . $redirect_url);
         exit;
     }
 
@@ -884,28 +882,42 @@ function handle_calculate_averages() {
         if (!$formule) {
             throw new Exception("Aucune formule n'est définie pour cette matière pour la période sélectionnée.");
         }
+        
+        // 2. Récupérer les codes de colonnes pour cette matière/période
+        $stmt_cols = $pdo->prepare("SELECT code_colonne FROM configuration_colonnes WHERE matiere_id = ? AND periode_id = ?");
+        $stmt_cols->execute([$matiere_id, $periode_id]);
+        $codes_colonnes = $stmt_cols->fetchAll(PDO::FETCH_COLUMN);
 
-        // 2. Récupérer les étudiants inscrits
+        // 3. Récupérer les étudiants inscrits
         $stmt_etudiants = $pdo->prepare("SELECT etudiant_id FROM inscriptions_matieres WHERE matiere_id = ? AND periode_id = ?");
         $stmt_etudiants->execute([$matiere_id, $periode_id]);
         $etudiant_ids = $stmt_etudiants->fetchAll(PDO::FETCH_COLUMN);
 
-        // 3. Pour chaque étudiant, calculer et stocker la moyenne
+        // 4. Pour chaque étudiant, calculer et stocker la moyenne
         foreach ($etudiant_ids as $etudiant_id) {
-            // Récupérer les notes de l'étudiant
-            // NOTE: This assumes 'colonne_id' and 'periode_id' are back in the 'notes' table schema
+            // Récupérer les notes de l'étudiant avec leur statut
             $stmt_notes = $pdo->prepare("
-                SELECT cc.code_colonne, n.valeur
+                SELECT cc.code_colonne, n.valeur, n.statut
                 FROM notes n
                 JOIN configuration_colonnes cc ON n.colonne_id = cc.id
-                WHERE n.etudiant_id = ? AND cc.matiere_id = ? AND cc.periode_id = ? AND n.statut = 'saisie'
+                WHERE n.etudiant_id = ? AND cc.matiere_id = ? AND cc.periode_id = ?
             ");
             $stmt_notes->execute([$etudiant_id, $matiere_id, $periode_id]);
-            $notes = $stmt_notes->fetchAll(PDO::FETCH_KEY_PAIR);
+            $notes_raw = $stmt_notes->fetchAll(PDO::FETCH_ASSOC);
             
+            // Préparer le tableau de notes complet pour le parser
+            $notes_for_parser = array_fill_keys($codes_colonnes, null);
+            foreach ($notes_raw as $note) {
+                if ($note['statut'] === 'saisie') {
+                    $notes_for_parser[$note['code_colonne']] = $note['valeur'];
+                } else {
+                    // Pour 'absent', 'dispense', etc., passer un code que le parser interprète comme NULL
+                    $notes_for_parser[$note['code_colonne']] = strtoupper($note['statut']); 
+                }
+            }
+
             // Calculer la moyenne
-            // Assuming FormulaParser::evaluer is the correct method name (as per the code I read)
-            $moyenne = $parser->evaluer($formule, $notes); 
+            $moyenne = $parser->evaluer($formule, $notes_for_parser); 
 
             // Upsert dans la table des moyennes
             $stmt_check = $pdo->prepare("SELECT id FROM moyennes WHERE etudiant_id = ? AND matiere_id = ? AND periode_id = ?");
@@ -927,10 +939,39 @@ function handle_calculate_averages() {
 
     } catch (Exception $e) {
         $_SESSION['error_message'] = "Erreur lors du calcul : " . $e->getMessage();
-        error_log("Formula Calculation Error: " . $e->getMessage()); // Add this line for detailed logging
+        error_log("Formula Calculation Error: " . $e->getMessage());
     }
 
     // Redirection
     header('Location: ' . $redirect_url);
+    exit;
+}
+
+/**
+ * Gère le déverrouillage de la saisie des notes pour un professeur.
+ */
+function handle_unlock_grades() {
+    // Seul un admin peut faire ça, déjà protégé par le routeur principal.
+    $progression_id = filter_input(INPUT_POST, 'progression_id', FILTER_VALIDATE_INT);
+
+    if (!$progression_id) {
+        $_SESSION['error_message'] = "ID de progression non valide.";
+        header('Location: ' . APP_URL . '/index.php?page=view_progress');
+        exit;
+    }
+
+    try {
+        $pdo = getDBConnection();
+        $sql = "UPDATE progression_saisie SET valide_par_prof = FALSE, date_validation = NULL WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$progression_id]);
+
+        $_SESSION['success_message'] = "La saisie a été déverrouillée avec succès. Le professeur peut à nouveau modifier les notes.";
+
+    } catch (PDOException $e) {
+        $_SESSION['error_message'] = "Erreur BDD lors du déverrouillage : " . (DEBUG_MODE ? $e->getMessage() : "Contactez un admin.");
+    }
+
+    header('Location: ' . APP_URL . '/index.php?page=view_progress');
     exit;
 }
