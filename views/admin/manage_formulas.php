@@ -8,7 +8,13 @@ $matiere_id = filter_input(INPUT_GET, 'matiere_id', FILTER_VALIDATE_INT);
 $periode_id = filter_input(INPUT_GET, 'periode_id', FILTER_VALIDATE_INT);
 
 // Fetch subjects and periods for the selection form
-$all_matieres = $pdo->query("SELECT id, nom FROM matieres ORDER BY nom")->fetchAll();
+$all_matieres_stmt = $pdo->query("
+    SELECT m.id, m.nom, f.nom AS filiere_nom
+    FROM matieres m
+    JOIN filieres f ON m.filiere_id = f.id
+    ORDER BY m.nom, f.nom
+");
+$all_matieres = $all_matieres_stmt->fetchAll();
 $all_periodes = $pdo->query("SELECT id, nom, annee_universitaire FROM periodes ORDER BY annee_universitaire DESC, nom ASC")->fetchAll();
 
 
@@ -34,7 +40,7 @@ if (!$matiere_id || !$periode_id) {
                         <select id="matiere_id_select" name="matiere_id" required>
                             <option value="">-- Sélectionner une matière --</option>
                             <?php foreach ($all_matieres as $matiere): ?>
-                                <option value="<?php echo $matiere['id']; ?>"><?php echo htmlspecialchars($matiere['nom']); ?></option>
+                                <option value="<?php echo $matiere['id']; ?>"><?php echo htmlspecialchars($matiere['nom']) . ' (' . htmlspecialchars($matiere['filiere_nom']) . ')'; ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>

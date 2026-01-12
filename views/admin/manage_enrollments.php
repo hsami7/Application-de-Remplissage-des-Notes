@@ -3,7 +3,12 @@ $pdo = getDBConnection();
 
 // --- Récupérer les listes pour les formulaires ---
 $etudiants = $pdo->query("SELECT id, nom, prenom FROM utilisateurs WHERE role = 'etudiant' ORDER BY nom, prenom")->fetchAll();
-$matieres = $pdo->query("SELECT id, nom FROM matieres ORDER BY nom")->fetchAll();
+$matieres = $pdo->query("
+    SELECT m.id, m.nom, f.nom as filiere_nom
+    FROM matieres m
+    JOIN filieres f ON m.filiere_id = f.id
+    ORDER BY m.nom, f.nom
+")->fetchAll();
 $periodes = $pdo->query("SELECT id, nom FROM periodes ORDER BY date_debut_saisie DESC")->fetchAll();
 
 // --- Récupérer les inscriptions existantes ---
@@ -58,7 +63,7 @@ $enrollments = $pdo->query("
                     <select name="matiere_id" required>
                         <option value="">-- Choisir --</option>
                         <?php foreach ($matieres as $matiere): ?>
-                            <option value="<?php echo $matiere['id']; ?>"><?php echo htmlspecialchars($matiere['nom']); ?></option>
+                            <option value="<?php echo $matiere['id']; ?>"><?php echo htmlspecialchars($matiere['nom'] . ' (' . $matiere['filiere_nom'] . ')'); ?></option>
                         <?php endforeach; ?>
                     </select>
                 </div>

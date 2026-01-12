@@ -10,6 +10,8 @@ $stmt = $pdo->prepare("
         m.id as matiere_id,
         m.nom as matiere_nom,
         moy.moyenne,
+        moy.statut_validation,
+        m.seuil_validation,
         cc.nom_colonne,
         n.valeur,
         n.statut
@@ -41,7 +43,9 @@ foreach ($results as $row) {
         $grades_by_period[$periode_nom][$matiere_key] = [
             'matiere_nom' => $row['matiere_nom'],
             'notes' => [],
-            'moyenne' => $row['moyenne'] // Moyenne is the same for all note rows of a subject
+            'moyenne' => $row['moyenne'],
+            'seuil_validation' => $row['seuil_validation'],
+            'statut_validation' => $row['statut_validation'] // Moyenne is the same for all note rows of a subject
         ];
     }
     
@@ -93,6 +97,17 @@ foreach ($results as $row) {
                         </div>
                         <div class="average-display">
                             Moyenne: <strong><?php echo isset($matiere['moyenne']) ? number_format($matiere['moyenne'], 2, ',', ' ') : 'N/A'; ?></strong>
+                            <?php
+                            $resultat_text = 'N/A';
+                            if (isset($matiere['moyenne']) && isset($matiere['seuil_validation'])) {
+                                if ($matiere['moyenne'] >= $matiere['seuil_validation']) {
+                                    $resultat_text = 'VALIDÉ';
+                                } else {
+                                    $resultat_text = 'RATTRAPAGE';
+                                }
+                            }
+                            ?>
+                            (<?php echo htmlspecialchars($resultat_text); ?>)
                         </div>
                     </div>
                 <?php endforeach; ?>

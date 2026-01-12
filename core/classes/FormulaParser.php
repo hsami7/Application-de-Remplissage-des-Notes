@@ -69,6 +69,11 @@ class FormulaParser {
         $substituted_formula = $formula;
         foreach ($values as $nom => $valeur) {
             $replacement = 'NULL';
+            // Convert comma decimal to dot decimal for numeric check and calculation
+            if (is_string($valeur) && strpos($valeur, ',') !== false) {
+                $valeur = str_replace(',', '.', $valeur);
+            }
+
             if (is_numeric($valeur)) {
                 $replacement = (string)$valeur;
             } elseif (is_string($valeur) && in_array(strtoupper($valeur), ['ABS', 'DIS', 'DEF'])) {

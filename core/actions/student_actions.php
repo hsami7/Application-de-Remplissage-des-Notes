@@ -22,13 +22,13 @@ class TranscriptPDF extends FPDF
         // $this->Image('path/to/logo.png', 10, 6, 30);
         
         $this->SetFont('Helvetica', 'B', 16);
-        $this->Cell(0, 10, 'Releve de Notes', 0, 1, 'C');
+        $this->Cell(0, 10, mb_convert_encoding('Relevé de Notes', 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
         $this->SetFont('Helvetica', '', 12);
-        $this->Cell(0, 10, 'Annee Universitaire: ' . $this->schoolYear, 0, 1, 'C');
+        $this->Cell(0, 10, mb_convert_encoding('Année Universitaire: ' . $this->schoolYear, 'ISO-8859-1', 'UTF-8'), 0, 1, 'C');
         $this->Ln(5);
 
         $this->SetFont('Helvetica', 'B', 12);
-        $this->Cell(0, 10, 'Etudiant: ' . $this->studentName, 0, 1, 'L');
+        $this->Cell(0, 10, mb_convert_encoding('Étudiant: ' . $this->studentName, 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
         $this->Ln(10);
     }
 
@@ -47,15 +47,15 @@ class TranscriptPDF extends FPDF
     {
         $this->SetFont('Helvetica', 'B', 14);
         $this->SetFillColor(200, 220, 255);
-        $this->Cell(0, 8, $label, 0, 1, 'L', true);
+        $this->Cell(0, 8, mb_convert_encoding($label, 'ISO-8859-1', 'UTF-8'), 0, 1, 'L', true);
         $this->Ln(4);
     }
     
     // Subject table
     function SubjectTable($header, $data)
     {
-        // Column widths
-        $w = array(60, 25, 25, 25, 55);
+        // Column widths - Adjusted for 3 columns (Matiere, Note / 20, Statut Validation)
+        $w = array(80, 40, 70); 
         // Header
         $this->SetFont('Helvetica', 'B', 10);
         for($i=0; $i<count($header); $i++)
@@ -67,9 +67,7 @@ class TranscriptPDF extends FPDF
         {
             $this->Cell($w[0], 6, $row[0], 'LR');
             $this->Cell($w[1], 6, $row[1], 'LR', 0, 'C');
-            $this->Cell($w[2], 6, $row[2], 'LR', 0, 'C');
-            $this->Cell($w[3], 6, $row[3], 'LR', 0, 'C');
-            $this->Cell($w[4], 6, $row[4], 'LR', 0, 'C');
+            $this->Cell($w[2], 6, $row[2], 'LR', 0, 'C'); 
             $this->Ln();
         }
         // Closing line
@@ -208,6 +206,7 @@ function handle_generate_transcript() {
             SELECT 
                 m.nom as matiere_nom,
                 moy.moyenne,
+                moy.statut_validation,
                 (CASE WHEN moy.moyenne >= m.seuil_validation THEN 'Valide' ELSE 'Non Valide' END) as decision
             FROM inscriptions_matieres im
             JOIN matieres m ON im.matiere_id = m.id
@@ -220,32 +219,32 @@ function handle_generate_transcript() {
 
         // 3. Create PDF
         $student_name = $info['prenom'] . ' ' . $info['nom'];
-        error_log("Student Name: " . $student_name);
-        error_log("School Year: " . $info['annee_universitaire']);
         $pdf = new TranscriptPDF($student_name, $info['annee_universitaire']);
         $pdf->AliasNbPages();
         $pdf->AddPage();
         
         // Chapter for the period
-        $pdf->ChapterTitle($info['periode_nom']);
+        $pdf->ChapterTitle(mb_convert_encoding($info['periode_nom'], 'ISO-8859-1', 'UTF-8'));
         
         // Table header
-        $header = array('Matiere', 'Note / 20', 'Coefficient', 'Credits', 'Decision');
+        $header = array(
+            mb_convert_encoding('Matière', 'ISO-8859-1', 'UTF-8'), 
+            mb_convert_encoding('Note / 20', 'ISO-8859-1', 'UTF-8'), 
+            mb_convert_encoding('Statut Validation', 'ISO-8859-1', 'UTF-8')
+        );
 
         $data_for_pdf = [];
         foreach($grades_data as $grade) {
             $data_for_pdf[] = [
-                $grade['matiere_nom'],
-                number_format($grade['moyenne'] ?? 0, 2),
-                'N/A', // Coeff and credits not easily available without more queries
-                'N/A',
-                $grade['decision']
+                mb_convert_encoding($grade['matiere_nom'], 'ISO-8859-1', 'UTF-8'),
+                mb_convert_encoding(number_format($grade['moyenne'] ?? 0, 2, ',', ' '), 'ISO-8859-1', 'UTF-8'),
+                mb_convert_encoding(ucwords(str_replace('_', ' ', $grade['statut_validation'] ?? 'Non validée')), 'ISO-8859-1', 'UTF-8')
             ];
         }
 
         if(empty($data_for_pdf)) {
             $pdf->SetFont('Helvetica', 'I', 10);
-            $pdf->Cell(0, 10, 'Aucune note a afficher pour cette periode.', 0, 1);
+            $pdf->Cell(0, 10, mb_convert_encoding('Aucune note à afficher pour cette période.', 'ISO-8859-1', 'UTF-8'), 0, 1);
         } else {
              $pdf->SubjectTable($header, $data_for_pdf);
         }
@@ -259,4 +258,3 @@ function handle_generate_transcript() {
         exit;
     }
 }
-?>

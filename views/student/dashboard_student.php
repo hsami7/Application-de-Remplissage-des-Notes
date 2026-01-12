@@ -4,6 +4,17 @@
 
 <div class="dashboard-container">
     <h2>Tableau de Bord Étudiant</h2>
+    <?php if (isset($_SESSION['success_message'])): ?>
+        <div class="message success">
+            <?php echo htmlspecialchars($_SESSION['success_message']); unset($_SESSION['success_message']); ?>
+        </div>
+    <?php endif; ?>
+
+    <?php if (isset($_SESSION['error_message'])): ?>
+        <div class="message error">
+            <?php echo htmlspecialchars($_SESSION['error_message']); unset($_SESSION['error_message']); ?>
+        </div>
+    <?php endif; ?>
     <p>Bienvenue, <?php echo htmlspecialchars($_SESSION['user_name']); ?> !</p>
     
     <div class="dashboard-grid">

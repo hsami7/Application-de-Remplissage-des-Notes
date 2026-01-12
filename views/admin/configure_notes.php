@@ -8,7 +8,13 @@ $matiere_id = filter_input(INPUT_GET, 'matiere_id', FILTER_VALIDATE_INT);
 $periode_id = filter_input(INPUT_GET, 'periode_id', FILTER_VALIDATE_INT);
 
 // Fetch subjects and periods for the selection form
-$all_matieres = $pdo->query("SELECT id, nom FROM matieres ORDER BY nom")->fetchAll();
+$all_matieres_stmt = $pdo->query("
+    SELECT m.id, m.nom, f.nom AS filiere_nom
+    FROM matieres m
+    JOIN filieres f ON m.filiere_id = f.id
+    ORDER BY m.nom, f.nom
+");
+$all_matieres = $all_matieres_stmt->fetchAll();
 $all_periodes = $pdo->query("SELECT id, nom, annee_universitaire FROM periodes ORDER BY annee_universitaire DESC, nom ASC")->fetchAll();
 
 
@@ -19,11 +25,10 @@ if (!$matiere_id || !$periode_id) {
         <h2>Configuration des Notes</h2>
         <h3>Sélectionnez une matière et une période</h3>
 
-        <?php if (isset($_SESSION['error_message'])): ?>
-            <div class="message error">
-                <?php echo htmlspecialchars($_SESSION['error_message']); unset($_SESSION['error_message']); ?>
-            </div>
-        <?php endif; ?>
+        <?php if (isset($_SESSION['error_message'])):
+            echo '<div class="message error">' . htmlspecialchars($_SESSION['error_message']) . '</div>';
+            unset($_SESSION['error_message']);
+        endif; ?>
 
         <div class="form-container">
             <form action="<?php echo APP_URL; ?>/index.php" method="GET">
@@ -33,18 +38,20 @@ if (!$matiere_id || !$periode_id) {
                         <label for="matiere_id_select">Matière</label>
                         <select id="matiere_id_select" name="matiere_id" required>
                             <option value="">-- Sélectionner une matière --</option>
-                            <?php foreach ($all_matieres as $matiere): ?>
-                                <option value="<?php echo $matiere['id']; ?>"><?php echo htmlspecialchars($matiere['nom']); ?></option>
-                            <?php endforeach; ?>
+                            <?php foreach ($all_matieres as $matiere):
+                                ?><option value="<?php echo $matiere['id']; ?>"><?php echo htmlspecialchars($matiere['nom']) . ' (' . htmlspecialchars($matiere['filiere_nom']) . ')'; ?></option>
+                            <?php endforeach;
+                            ?>
                         </select>
                     </div>
                     <div class="input-group">
                         <label for="periode_id_select">Période</label>
                         <select id="periode_id_select" name="periode_id" required>
                             <option value="">-- Sélectionner une période --</option>
-                            <?php foreach ($all_periodes as $periode): ?>
-                                <option value="<?php echo $periode['id']; ?>"><?php echo htmlspecialchars($periode['nom']) . " (" . htmlspecialchars($periode['annee_universitaire']) . ")"; ?></option>
-                            <?php endforeach; ?>
+                            <?php foreach ($all_periodes as $periode):
+                                ?><option value="<?php echo $periode['id']; ?>"><?php echo htmlspecialchars($periode['nom']) . " (" . htmlspecialchars($periode['annee_universitaire']) . ")"; ?></option>
+                            <?php endforeach;
+                            ?>
                         </select>
                     </div>
                 </div>
@@ -147,8 +154,8 @@ if (!$matiere_id || !$periode_id) {
                 <tbody>
                     <?php if (empty($colonnes)): ?>
                         <tr><td colspan="8">Aucune colonne configurée pour cette matière et cette période.</td></tr>
-                    <?php else: ?>
-                        <?php foreach ($colonnes as $col): ?>
+                                        <?php else: ?>
+                                            <?php foreach ($colonnes as $col): ?>
                             <tr>
                                 <td><?php echo htmlspecialchars($col['nom_colonne']); ?></td>
                                 <td><?php echo htmlspecialchars($col['code_colonne']); ?></td>
@@ -167,8 +174,10 @@ if (!$matiere_id || !$periode_id) {
                                     </form>
                                 </td>
                             </tr>
-                        <?php endforeach; ?>
-                    <?php endif; ?>
+                        <?php endforeach;
+                        ?>
+                    <?php endif;
+                    ?>
                 </tbody>
             </table>
         </div>

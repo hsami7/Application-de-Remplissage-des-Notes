@@ -913,11 +913,11 @@ function handle_calculate_averages() {
             $exists = $stmt_check->fetch();
 
             if ($exists) {
-                $sql = "UPDATE moyennes SET moyenne = ? WHERE id = ?";
+                $sql = "UPDATE moyennes SET moyenne = ?, statut_validation = 'non_validée' WHERE id = ?";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$moyenne, $exists['id']]);
             } else {
-                $sql = "INSERT INTO moyennes (etudiant_id, matiere_id, periode_id, moyenne) VALUES (?, ?, ?, ?)";
+                $sql = "INSERT INTO moyennes (etudiant_id, matiere_id, periode_id, moyenne, statut_validation) VALUES (?, ?, ?, ?, 'non_validée')";
                 $stmt = $pdo->prepare($sql);
                 $stmt->execute([$etudiant_id, $matiere_id, $periode_id, $moyenne]);
             }

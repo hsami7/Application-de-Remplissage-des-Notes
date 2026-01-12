@@ -1,4 +1,4 @@
-<?php
+<?php ob_start(); // Add this to the very first line of the script to prevent headers already sent issues
 // Initialisation globale de l'application (session, config, DB, fonctions)
 require_once '../core/init.php';
 
