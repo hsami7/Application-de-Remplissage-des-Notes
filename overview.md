@@ -1,5 +1,3 @@
-# GEMINI.md
-
 ## Project Overview
 
 This project is a dynamic web application for managing student grades, built with PHP and a MySQL database. It allows administrators to dynamically configure grading structures, including custom columns and calculation formulas for each subject. Professors can then enter student grades based on this configuration, and students can view their published results.
