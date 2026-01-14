@@ -17,11 +17,13 @@ $enrollments = $pdo->query("
         i.id,
         CONCAT(u.prenom, ' ', u.nom) as etudiant_nom,
         m.nom as matiere_nom,
+        f.nom as filiere_nom,
         p.nom as periode_nom,
         i.groupe
     FROM inscriptions_matieres i
     JOIN utilisateurs u ON i.etudiant_id = u.id
     JOIN matieres m ON i.matiere_id = m.id
+    JOIN filieres f ON m.filiere_id = f.id
     JOIN periodes p ON i.periode_id = p.id
     ORDER BY p.date_debut_saisie DESC, etudiant_nom, matiere_nom
 ")->fetchAll();
@@ -105,11 +107,14 @@ $enrollments = $pdo->query("
                     <?php foreach ($enrollments as $enroll): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($enroll['etudiant_nom']); ?></td>
-                            <td><?php echo htmlspecialchars($enroll['matiere_nom']); ?></td>
+                            <td><?php echo htmlspecialchars($enroll['matiere_nom'] . ' (' . $enroll['filiere_nom'] . ')'); ?></td>
                             <td><?php echo htmlspecialchars($enroll['periode_nom']); ?></td>
                             <td><?php echo htmlspecialchars($enroll['groupe'] ?: 'N/A'); ?></td>
                             <td>
-                                <a href="#" class="action-btn delete">Supprimer</a>
+                                <form action="<?php echo APP_URL; ?>/index.php?action=delete_enrollment" method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette inscription ?');">
+                                    <input type="hidden" name="enrollment_id" value="<?php echo $enroll['id']; ?>">
+                                    <button type="submit" class="action-btn delete">Supprimer</button>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

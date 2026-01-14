@@ -563,6 +563,40 @@ function handle_add_assignment() {
 }
 
 /**
+ * Gère la suppression d'une affectation.
+ */
+function handle_delete_assignment() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $_SESSION['error_message'] = "Méthode non autorisée pour cette action.";
+        header('Location: ' . APP_URL . '/index.php?page=manage_assignments');
+        exit;
+    }
+
+    $assignment_id = filter_input(INPUT_POST, 'assignment_id', FILTER_VALIDATE_INT);
+
+    if (!$assignment_id) {
+        $_SESSION['error_message'] = "ID d'affectation non valide.";
+        header('Location: ' . APP_URL . '/index.php?page=manage_assignments');
+        exit;
+    }
+
+    try {
+        $pdo = getDBConnection();
+        $sql = "DELETE FROM affectations_profs WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$assignment_id]);
+
+        $_SESSION['success_message'] = "L'affectation a été supprimée avec succès.";
+
+    } catch (PDOException $e) {
+        $_SESSION['error_message'] = "Erreur BDD: " . (DEBUG_MODE ? $e->getMessage() : "Contactez un admin.");
+    }
+
+    header('Location: ' . APP_URL . '/index.php?page=manage_assignments');
+    exit;
+}
+
+/**
  * Gère l'inscription d'un étudiant à une matière.
  */
 function handle_add_enrollment() {
@@ -603,6 +637,40 @@ function handle_add_enrollment() {
     }
 
     // Redirection
+    header('Location: ' . APP_URL . '/index.php?page=manage_enrollments');
+    exit;
+}
+
+/**
+ * Gère la suppression d'une inscription.
+ */
+function handle_delete_enrollment() {
+    if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $_SESSION['error_message'] = "Méthode non autorisée pour cette action.";
+        header('Location: ' . APP_URL . '/index.php?page=manage_enrollments');
+        exit;
+    }
+
+    $enrollment_id = filter_input(INPUT_POST, 'enrollment_id', FILTER_VALIDATE_INT);
+
+    if (!$enrollment_id) {
+        $_SESSION['error_message'] = "ID d'inscription non valide.";
+        header('Location: ' . APP_URL . '/index.php?page=manage_enrollments');
+        exit;
+    }
+
+    try {
+        $pdo = getDBConnection();
+        $sql = "DELETE FROM inscriptions_matieres WHERE id = ?";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([$enrollment_id]);
+
+        $_SESSION['success_message'] = "L'inscription a été supprimée avec succès.";
+
+    } catch (PDOException $e) {
+        $_SESSION['error_message'] = "Erreur BDD: " . (DEBUG_MODE ? $e->getMessage() : "Contactez un admin.");
+    }
+
     header('Location: ' . APP_URL . '/index.php?page=manage_enrollments');
     exit;
 }
@@ -874,10 +942,18 @@ function handle_calculate_averages() {
         require_once '../core/classes/FormulaParser.php';
         $parser = new FormulaParser();
 
-        // 1. Récupérer la formule
-        $stmt_formule = $pdo->prepare("SELECT formule FROM formules WHERE matiere_id = ? AND periode_id = ?");
-        $stmt_formule->execute([$matiere_id, $periode_id]);
-        $formule = $stmt_formule->fetchColumn();
+        // 1. Récupérer la formule et le seuil de validation
+        $stmt_matiere_info = $pdo->prepare("
+            SELECT f.formule, m.seuil_validation 
+            FROM matieres m
+            LEFT JOIN formules f ON m.id = f.matiere_id AND f.periode_id = :periode_id
+            WHERE m.id = :matiere_id
+        ");
+        $stmt_matiere_info->execute([':matiere_id' => $matiere_id, ':periode_id' => $periode_id]);
+        $matiere_info = $stmt_matiere_info->fetch();
+        
+        $formule = $matiere_info['formule'] ?? null;
+        $seuil_validation = $matiere_info['seuil_validation'] ?? 10.0;
 
         if (!$formule) {
             throw new Exception("Aucune formule n'est définie pour cette matière pour la période sélectionnée.");
@@ -919,19 +995,31 @@ function handle_calculate_averages() {
             // Calculer la moyenne
             $moyenne = $parser->evaluer($formule, $notes_for_parser); 
 
+            // Déterminer la décision
+            $decision = 'en_attente';
+            if ($moyenne !== null) {
+                if ($moyenne < 7) {
+                    $decision = 'non_valide';
+                } elseif ($moyenne >= 7 && $moyenne < $seuil_validation) {
+                    $decision = 'rattrapage';
+                } elseif ($moyenne >= $seuil_validation) {
+                    $decision = 'valide';
+                }
+            }
+
             // Upsert dans la table des moyennes
             $stmt_check = $pdo->prepare("SELECT id FROM moyennes WHERE etudiant_id = ? AND matiere_id = ? AND periode_id = ?");
             $stmt_check->execute([$etudiant_id, $matiere_id, $periode_id]);
             $exists = $stmt_check->fetch();
 
             if ($exists) {
-                $sql = "UPDATE moyennes SET moyenne = ?, statut_validation = 'non_validée' WHERE id = ?";
+                $sql = "UPDATE moyennes SET moyenne = ?, decision = ?, statut_validation = 'non_validée' WHERE id = ?";
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([$moyenne, $exists['id']]);
+                $stmt->execute([$moyenne, $decision, $exists['id']]);
             } else {
-                $sql = "INSERT INTO moyennes (etudiant_id, matiere_id, periode_id, moyenne, statut_validation) VALUES (?, ?, ?, ?, 'non_validée')";
+                $sql = "INSERT INTO moyennes (etudiant_id, matiere_id, periode_id, moyenne, decision, statut_validation) VALUES (?, ?, ?, ?, ?, 'non_validée')";
                 $stmt = $pdo->prepare($sql);
-                $stmt->execute([$etudiant_id, $matiere_id, $periode_id, $moyenne]);
+                $stmt->execute([$etudiant_id, $matiere_id, $periode_id, $moyenne, $decision]);
             }
         }
 

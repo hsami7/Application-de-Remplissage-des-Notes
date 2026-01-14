@@ -55,7 +55,7 @@ class TranscriptPDF extends FPDF
     function SubjectTable($header, $data)
     {
         // Column widths - Adjusted for 3 columns (Matiere, Note / 20, Statut Validation)
-        $w = array(80, 40, 70); 
+        $w = array(90, 40, 60); 
         // Header
         $this->SetFont('Helvetica', 'B', 10);
         for($i=0; $i<count($header); $i++)
@@ -205,9 +205,9 @@ function handle_generate_transcript() {
         $stmt_grades = $pdo->prepare("
             SELECT 
                 m.nom as matiere_nom,
-                moy.moyenne,
-                moy.statut_validation,
-                (CASE WHEN moy.moyenne >= m.seuil_validation THEN 'Valide' ELSE 'Non Valide' END) as decision
+                m.coefficient,
+                m.seuil_validation,
+                moy.moyenne
             FROM inscriptions_matieres im
             JOIN matieres m ON im.matiere_id = m.id
             LEFT JOIN moyennes moy ON moy.etudiant_id = im.etudiant_id AND moy.matiere_id = m.id AND moy.periode_id = im.periode_id
@@ -228,17 +228,40 @@ function handle_generate_transcript() {
         
         // Table header
         $header = array(
-            mb_convert_encoding('Matière', 'ISO-8859-1', 'UTF-8'), 
+            mb_convert_encoding('Matière (Coeff)', 'ISO-8859-1', 'UTF-8'), 
             mb_convert_encoding('Note / 20', 'ISO-8859-1', 'UTF-8'), 
-            mb_convert_encoding('Statut Validation', 'ISO-8859-1', 'UTF-8')
+            mb_convert_encoding('Décision', 'ISO-8859-1', 'UTF-8')
         );
 
         $data_for_pdf = [];
+        $total_points = 0;
+        $total_coeffs = 0;
+
         foreach($grades_data as $grade) {
+            $moyenne = $grade['moyenne'] ?? null;
+            $seuil = $grade['seuil_validation'] ?? 10.0;
+            $coeff = $grade['coefficient'] ?? 1;
+
+            $decision_text = 'EN ATTENTE';
+            if ($moyenne !== null) {
+                if ($moyenne < 7) {
+                    $decision_text = 'NON VALIDÉ';
+                } elseif ($moyenne >= 7 && $moyenne < $seuil) {
+                    $decision_text = 'RATTRAPAGE';
+                } elseif ($moyenne >= $seuil) {
+                    $decision_text = 'VALIDÉ';
+                }
+
+                if (is_numeric($coeff)) {
+                    $total_points += $moyenne * $coeff;
+                    $total_coeffs += $coeff;
+                }
+            }
+            
             $data_for_pdf[] = [
-                mb_convert_encoding($grade['matiere_nom'], 'ISO-8859-1', 'UTF-8'),
-                mb_convert_encoding(number_format($grade['moyenne'] ?? 0, 2, ',', ' '), 'ISO-8859-1', 'UTF-8'),
-                mb_convert_encoding(ucwords(str_replace('_', ' ', $grade['decision'] ?? 'Non Valide')), 'ISO-8859-1', 'UTF-8')
+                mb_convert_encoding($grade['matiere_nom'] . ' (' . $coeff . ')', 'ISO-8859-1', 'UTF-8'),
+                mb_convert_encoding($moyenne !== null ? number_format($moyenne, 2, ',', ' ') : 'N/A', 'ISO-8859-1', 'UTF-8'),
+                mb_convert_encoding($decision_text, 'ISO-8859-1', 'UTF-8')
             ];
         }
 
@@ -248,6 +271,26 @@ function handle_generate_transcript() {
         } else {
              $pdf->SubjectTable($header, $data_for_pdf);
         }
+
+        // Moyenne Générale
+        $moyenne_generale = ($total_coeffs > 0) ? $total_points / $total_coeffs : null;
+        $decision_generale_text = 'EN ATTENTE';
+        if ($moyenne_generale !== null) {
+            if ($moyenne_generale < 7) {
+                $decision_generale_text = 'NON VALIDÉ';
+            } elseif ($moyenne_generale >= 7 && $moyenne_generale < 10) {
+                $decision_generale_text = 'RATTRAPAGE';
+            } elseif ($moyenne_generale >= 10) {
+                $decision_generale_text = 'VALIDÉ';
+            }
+        }
+
+        $pdf->Ln(5);
+        $pdf->SetFont('Helvetica', 'B', 12);
+        $pdf->Cell(110, 10, mb_convert_encoding('Moyenne Générale:', 'ISO-8859-1', 'UTF-8'), 0, 0, 'R');
+        $pdf->SetFont('Helvetica', 'B', 12);
+        $pdf->Cell(30, 10, mb_convert_encoding($moyenne_generale !== null ? number_format($moyenne_generale, 2, ',', ' ') : 'N/A', 'ISO-8859-1', 'UTF-8'), 0, 0, 'C');
+        $pdf->Cell(50, 10, mb_convert_encoding('(' . $decision_generale_text . ')', 'ISO-8859-1', 'UTF-8'), 0, 1, 'L');
 
         $pdf->Output('D', 'Releve_Notes_' . str_replace(' ', '_', $info['periode_nom']) . '.pdf');
 

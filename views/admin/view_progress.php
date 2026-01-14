@@ -9,6 +9,7 @@ $stmt = $pdo->query("
     SELECT 
         ps.id,
         m.nom as matiere_nom,
+        f.nom as filiere_nom,
         p.nom as periode_nom,
         CONCAT(u.prenom, ' ', u.nom) as prof_nom,
         ps.total_etudiants,
@@ -19,6 +20,7 @@ $stmt = $pdo->query("
         ps.date_mise_a_jour
     FROM progression_saisie ps
     JOIN matieres m ON ps.matiere_id = m.id
+    JOIN filieres f ON m.filiere_id = f.id
     JOIN periodes p ON ps.periode_id = p.id
     JOIN utilisateurs u ON ps.professeur_id = u.id
     ORDER BY p.date_debut_saisie DESC, m.nom ASC
@@ -66,7 +68,7 @@ $progress_data = $stmt->fetchAll();
                     <tbody>
                         <?php foreach ($progress_data as $progress): ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($progress['matiere_nom']); ?></td>
+                                <td><?php echo htmlspecialchars($progress['matiere_nom'] . ' (' . $progress['filiere_nom'] . ')'); ?></td>
                                 <td><?php echo htmlspecialchars($progress['periode_nom']); ?></td>
                                 <td><?php echo htmlspecialchars($progress['prof_nom']); ?></td>
                                 <td><?php echo htmlspecialchars($progress['total_etudiants']); ?></td>

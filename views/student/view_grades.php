@@ -9,8 +9,8 @@ $stmt = $pdo->prepare("
         p.nom as periode_nom,
         m.id as matiere_id,
         m.nom as matiere_nom,
+        m.coefficient,
         moy.moyenne,
-        moy.statut_validation,
         m.seuil_validation,
         cc.nom_colonne,
         n.valeur,
@@ -45,7 +45,7 @@ foreach ($results as $row) {
             'notes' => [],
             'moyenne' => $row['moyenne'],
             'seuil_validation' => $row['seuil_validation'],
-            'statut_validation' => $row['statut_validation'] // Moyenne is the same for all note rows of a subject
+            'coefficient' => $row['coefficient']
         ];
     }
     
@@ -70,9 +70,17 @@ foreach ($results as $row) {
         <?php foreach ($grades_by_period as $periode_nom => $matieres): ?>
             <div class="period-container">
                 <h3><?php echo htmlspecialchars($periode_nom); ?></h3>
-                <?php foreach ($matieres as $matiere): ?>
+                <?php 
+                $total_points = 0;
+                $total_coeffs = 0;
+                foreach ($matieres as $matiere): 
+                    if (isset($matiere['moyenne']) && is_numeric($matiere['coefficient'])) {
+                        $total_points += $matiere['moyenne'] * $matiere['coefficient'];
+                        $total_coeffs += $matiere['coefficient'];
+                    }
+                ?>
                     <div class="subject-card">
-                        <h4><?php echo htmlspecialchars($matiere['matiere_nom']); ?></h4>
+                        <h4><?php echo htmlspecialchars($matiere['matiere_nom']); ?> (Coeff: <?php echo htmlspecialchars($matiere['coefficient']); ?>)</h4>
                         <div class="grades-grid">
                             <?php if (empty($matiere['notes'])): ?>
                                 <p>Aucun détail de note disponible.</p>
@@ -98,19 +106,44 @@ foreach ($results as $row) {
                         <div class="average-display">
                             Moyenne: <strong><?php echo isset($matiere['moyenne']) ? number_format($matiere['moyenne'], 2, ',', ' ') : 'N/A'; ?></strong>
                             <?php
-                            $resultat_text = 'N/A';
-                            if (isset($matiere['moyenne']) && isset($matiere['seuil_validation'])) {
-                                if ($matiere['moyenne'] >= $matiere['seuil_validation']) {
-                                    $resultat_text = 'VALIDÉ';
-                                } else {
-                                    $resultat_text = 'RATTRAPAGE';
+                            $decision_text = 'EN ATTENTE';
+                            if (isset($matiere['moyenne'])) {
+                                $moyenne = $matiere['moyenne'];
+                                $seuil = $matiere['seuil_validation'] ?? 10.0;
+                                
+                                if ($moyenne < 7) {
+                                    $decision_text = 'NON VALIDÉ';
+                                } elseif ($moyenne >= 7 && $moyenne < $seuil) {
+                                    $decision_text = 'RATTRAPAGE';
+                                } elseif ($moyenne >= $seuil) {
+                                    $decision_text = 'VALIDÉ';
                                 }
                             }
                             ?>
-                            (<?php echo htmlspecialchars($resultat_text); ?>)
+                            (<?php echo htmlspecialchars($decision_text); ?>)
                         </div>
                     </div>
-                <?php endforeach; ?>
+                <?php endforeach; 
+
+                $moyenne_generale = ($total_coeffs > 0) ? $total_points / $total_coeffs : null;
+                $decision_generale_text = 'EN ATTENTE';
+                if ($moyenne_generale !== null) {
+                    if ($moyenne_generale < 7) {
+                        $decision_generale_text = 'NON VALIDÉ';
+                    } elseif ($moyenne_generale >= 7 && $moyenne_generale < 10) {
+                        $decision_generale_text = 'RATTRAPAGE';
+                    } elseif ($moyenne_generale >= 10) {
+                        $decision_generale_text = 'VALIDÉ';
+                    }
+                }
+                ?>
+                <div class="overall-average-card">
+                    <h4>Moyenne Générale (<?php echo htmlspecialchars($periode_nom); ?>)</h4>
+                    <div class="average-display">
+                        Moyenne: <strong><?php echo $moyenne_generale !== null ? number_format($moyenne_generale, 2, ',', ' ') : 'N/A'; ?></strong>
+                        (<?php echo htmlspecialchars($decision_generale_text); ?>)
+                    </div>
+                </div>
             </div>
         <?php endforeach; ?>
     <?php endif; ?>

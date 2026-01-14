@@ -6,7 +6,8 @@ $prof_id = $_SESSION['user_id'];
 $stmt = $pdo->prepare("
     SELECT 
         m.id as matiere_id,
-        m.nom as matiere_nom, 
+        m.nom as matiere_nom,
+        f.nom as filiere_nom, 
         p.id as periode_id,
         p.nom as periode_nom,
         ps.valide_par_prof,
@@ -15,6 +16,7 @@ $stmt = $pdo->prepare("
         (SELECT COUNT(DISTINCT n.etudiant_id) FROM notes n JOIN configuration_colonnes cc ON n.colonne_id = cc.id WHERE cc.matiere_id = m.id AND cc.periode_id = p.id) as etudiants_avec_notes
     FROM affectations_profs ap
     JOIN matieres m ON ap.matiere_id = m.id
+    JOIN filieres f ON m.filiere_id = f.id
     JOIN periodes p ON ap.periode_id = p.id
     LEFT JOIN progression_saisie ps ON ps.matiere_id = m.id AND ps.periode_id = p.id AND ps.professeur_id = ap.professeur_id
     WHERE ap.professeur_id = ?
@@ -64,7 +66,7 @@ $subjects_status = $stmt->fetchAll();
                                 $progress = ($status['total_etudiants'] > 0) ? ($status['etudiants_avec_notes'] / $status['total_etudiants']) * 100 : 0;
                             ?>
                             <tr>
-                                <td><?php echo htmlspecialchars($status['matiere_nom']); ?></td>
+                                <td><?php echo htmlspecialchars($status['matiere_nom'] . ' (' . $status['filiere_nom'] . ')'); ?></td>
                                 <td><?php echo htmlspecialchars($status['periode_nom']); ?></td>
                                 <td>
                                     <div style="width: 100%; background-color: #e0e0e0; border-radius: 4px;">

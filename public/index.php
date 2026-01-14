@@ -34,7 +34,9 @@ if ($action) {
         'delete_column' => '../core/actions/admin_actions.php',
         'save_formula' => '../core/actions/admin_actions.php',
         'add_assignment' => '../core/actions/admin_actions.php',
+        'delete_assignment' => '../core/actions/admin_actions.php',
         'add_enrollment' => '../core/actions/admin_actions.php',
+        'delete_enrollment' => '../core/actions/admin_actions.php',
         'add_user' => '../core/actions/admin_actions.php',
         'update_user' => '../core/actions/admin_actions.php',
         'delete_user' => '../core/actions/admin_actions.php',
@@ -75,7 +77,9 @@ if ($action) {
             case 'delete_column': handle_delete_column(); break;
             case 'save_formula': handle_save_formula(); break;
             case 'add_assignment': handle_add_assignment(); break;
+            case 'delete_assignment': handle_delete_assignment(); break;
             case 'add_enrollment': handle_add_enrollment(); break;
+            case 'delete_enrollment': handle_delete_enrollment(); break;
             case 'add_user': handle_add_user(); break;
             case 'update_user': handle_update_user(); break;
             case 'delete_user': handle_delete_user(); break;
@@ -124,6 +128,7 @@ if ($action) {
         'manage_users' => ['file' => 'admin/manage_users.php', 'role' => ['admin']],
         'edit_user' => ['file' => 'admin/edit_user.php', 'role' => ['admin']],
         'view_progress' => ['file' => 'admin/view_progress.php', 'role' => ['admin']], // Added
+        'view_grades_admin' => ['file' => 'admin/view_grades_admin.php', 'role' => ['admin']],
 
 
         // Professor Pages

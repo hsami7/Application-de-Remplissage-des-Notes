@@ -7,11 +7,13 @@ $stmt = $pdo->prepare("
     SELECT 
         m.id as matiere_id, 
         m.nom as matiere_nom, 
+        f.nom as filiere_nom,
         p.id as periode_id, 
         p.nom as periode_nom,
         (SELECT COUNT(*) FROM inscriptions_matieres WHERE matiere_id = m.id AND periode_id = p.id) as student_count
     FROM affectations_profs ap
     JOIN matieres m ON ap.matiere_id = m.id
+    JOIN filieres f ON m.filiere_id = f.id
     JOIN periodes p ON ap.periode_id = p.id
     WHERE ap.professeur_id = ? AND p.statut = 'ouverte'
     ORDER BY p.nom, m.nom
@@ -42,7 +44,7 @@ $assigned_subjects = $stmt->fetchAll();
                 <tbody>
                     <?php foreach($assigned_subjects as $subject): ?>
                         <tr>
-                            <td><?php echo htmlspecialchars($subject['matiere_nom']); ?></td>
+                            <td><?php echo htmlspecialchars($subject['matiere_nom'] . ' (' . $subject['filiere_nom'] . ')'); ?></td>
                             <td><?php echo htmlspecialchars($subject['periode_nom']); ?></td>
                             <td><?php echo $subject['student_count']; ?></td>
                             <td>

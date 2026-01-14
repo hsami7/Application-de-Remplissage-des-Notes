@@ -17,11 +17,13 @@ $assignments = $pdo->query("
         a.id,
         CONCAT(u.prenom, ' ', u.nom) as prof_nom,
         m.nom as matiere_nom,
+        f.nom as filiere_nom,
         p.nom as periode_nom,
         a.groupe
     FROM affectations_profs a
     JOIN utilisateurs u ON a.professeur_id = u.id
     JOIN matieres m ON a.matiere_id = m.id
+    JOIN filieres f ON m.filiere_id = f.id
     JOIN periodes p ON a.periode_id = p.id
     ORDER BY p.date_debut_saisie DESC, prof_nom, matiere_nom
 ")->fetchAll();
@@ -105,11 +107,14 @@ $assignments = $pdo->query("
                     <?php foreach ($assignments as $assign): ?>
                         <tr>
                             <td><?php echo htmlspecialchars($assign['prof_nom']); ?></td>
-                            <td><?php echo htmlspecialchars($assign['matiere_nom']); ?></td>
+                            <td><?php echo htmlspecialchars($assign['matiere_nom'] . ' (' . $assign['filiere_nom'] . ')'); ?></td>
                             <td><?php echo htmlspecialchars($assign['periode_nom']); ?></td>
                             <td><?php echo htmlspecialchars($assign['groupe'] ?: 'Tous'); ?></td>
                             <td>
-                                <a href="#" class="action-btn delete">Supprimer</a>
+                                <form action="<?php echo APP_URL; ?>/index.php?action=delete_assignment" method="POST" style="display: inline;" onsubmit="return confirm('Êtes-vous sûr de vouloir supprimer cette affectation ?');">
+                                    <input type="hidden" name="assignment_id" value="<?php echo $assign['id']; ?>">
+                                    <button type="submit" class="action-btn delete">Supprimer</button>
+                                </form>
                             </td>
                         </tr>
                     <?php endforeach; ?>

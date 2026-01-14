@@ -48,6 +48,11 @@
             <a href="?page=view_progress" class="btn-card">Voir la Progression</a>
         </div>
         <div class="dashboard-card">
+            <h3>Consultation des Notes</h3>
+            <p>Consulter les notes saisies pour une matière.</p>
+            <a href="?page=view_grades_admin" class="btn-card">Consulter les Notes</a>
+        </div>
+        <div class="dashboard-card">
             <h3>Utilisateurs</h3>
             <p>Gérer les comptes utilisateurs (profs, étudiants).</p>
             <a href="?page=manage_users" class="btn-card">Gérer les Utilisateurs</a>

@@ -740,3 +740,22 @@ select.action-btn:hover {
         font-size: 0.9rem;
     }
 }
+.overall-average-card {
+    background-color: #fff;
+    border: 2px solid var(--primary-color);
+    border-radius: var(--border-radius);
+    padding: 2rem;
+    margin-top: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.overall-average-card h4 {
+    margin-top: 0;
+    color: var(--primary-color);
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px dashed var(--border-color);
+    padding-bottom: 1rem;
+}
+
