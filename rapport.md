@@ -43,7 +43,7 @@ Le projet est organisé de manière logique pour séparer les préoccupations :
 
 *   **Langage Backend :** **PHP 8+**. Choisi pour sa popularité, sa facilité de déploiement sur la plupart des serveurs web et son écosystème robuste.
 *   **Base de Données :** **MySQL**. Un système de gestion de base de données relationnelle fiable, performant et largement utilisé.
-*   **Frontend :** **HTML5, CSS3, JavaScript (Vanilla)**. Une approche simple et sans framework pour garantir la légèreté et la compatibilité.
+*   **Frontend :** **HTML5, CSS3**. Une approche simple et sans framework pour garantir la légèreté et la compatibilité.
 *   **Génération PDF :** **FPDF**. Une bibliothèque PHP simple et efficace pour la création de documents PDF, utilisée ici pour générer les relevés de notes.
 
 ---
@@ -106,14 +106,6 @@ La sécurité a été un aspect important lors du développement de l'applicatio
 
 ---
 
-## 6. Conclusion et Pistes d'Amélioration
+## 6. Conclusion
 
 L'application de gestion des notes est une solution fonctionnelle et robuste qui répond aux besoins de base de la gestion des notes dans un établissement d'enseignement. Sa flexibilité est son principal atout, permettant une adaptation facile à différents systèmes de notation.
-
-**Pistes d'Amélioration Futures :**
-
-*   **Interface Utilisateur :** Migration vers un framework JavaScript moderne (comme Vue.js ou React) pour une expérience utilisateur plus riche et réactive.
-*   **API RESTful :** Développement d'une API pour permettre à d'autres applications (par exemple, une application mobile) de s'interfacer avec le système.
-*   **Statistiques et Rapports :** Ajout de modules de visualisation de données pour générer des statistiques sur les performances des étudiants, des classes ou des matières.
-*   **Système de Notifications :** Implémentation de notifications par e-mail pour informer les utilisateurs des événements importants (par exemple, ouverture/fermeture des périodes de saisie, publication des notes).
-*   **Tests Automatisés :** Mise en place de tests unitaires et fonctionnels pour garantir la stabilité et la non-régression du code lors des évolutions futures.
