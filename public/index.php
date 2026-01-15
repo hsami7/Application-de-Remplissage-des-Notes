@@ -4,7 +4,7 @@ require_once '../core/init.php';
 
 // --- ROUTEUR PRINCIPAL ---
 
-$action = $_GET['action'] ?? null;
+$action = $_REQUEST['action'] ?? null;
 $page = $_GET['page'] ?? 'login';
 
 // Gérer les actions (soumissions de formulaire, etc.)
@@ -42,6 +42,7 @@ if ($action) {
         'delete_user' => '../core/actions/admin_actions.php',
         'calculate_averages' => '../core/actions/admin_actions.php',
         'unlock_grades' => '../core/actions/admin_actions.php',
+        'update_all_grades_admin' => '../core/actions/admin_actions.php',
 
         // Professor Actions
         'save_grades' => '../core/actions/prof_actions.php',
@@ -85,6 +86,7 @@ if ($action) {
             case 'delete_user': handle_delete_user(); break;
             case 'calculate_averages': handle_calculate_averages(); break;
             case 'unlock_grades': handle_unlock_grades(); break;
+            case 'update_all_grades_admin': handle_update_all_grades_admin(); break;
 
             // Professor
             case 'save_grades': handle_save_grades(); break;
@@ -129,6 +131,7 @@ if ($action) {
         'edit_user' => ['file' => 'admin/edit_user.php', 'role' => ['admin']],
         'view_progress' => ['file' => 'admin/view_progress.php', 'role' => ['admin']], // Added
         'view_grades_admin' => ['file' => 'admin/view_grades_admin.php', 'role' => ['admin']],
+        'edit_all_grades' => ['file' => 'admin/edit_all_grades.php', 'role' => ['admin']],
 
 
         // Professor Pages

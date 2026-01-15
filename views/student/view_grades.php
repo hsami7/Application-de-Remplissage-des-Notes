@@ -11,6 +11,7 @@ $stmt = $pdo->prepare("
         m.nom as matiere_nom,
         m.coefficient,
         moy.moyenne,
+        moy.decision,
         m.seuil_validation,
         cc.nom_colonne,
         n.valeur,
@@ -44,6 +45,7 @@ foreach ($results as $row) {
             'matiere_nom' => $row['matiere_nom'],
             'notes' => [],
             'moyenne' => $row['moyenne'],
+            'decision' => $row['decision'],
             'seuil_validation' => $row['seuil_validation'],
             'coefficient' => $row['coefficient']
         ];
@@ -82,7 +84,7 @@ foreach ($results as $row) {
                     <div class="subject-card">
                         <h4><?php echo htmlspecialchars($matiere['matiere_nom']); ?> (Coeff: <?php echo htmlspecialchars($matiere['coefficient']); ?>)</h4>
                         <div class="grades-grid">
-                            <?php if (empty($matiere['notes'])): ?>
+                            <?php if (empty($matiere['notes']) || $matiere['notes'][0]['nom_colonne'] === null): ?>
                                 <p>Aucun détail de note disponible.</p>
                             <?php else: ?>
                                 <?php foreach ($matiere['notes'] as $note): ?>
@@ -105,22 +107,7 @@ foreach ($results as $row) {
                         </div>
                         <div class="average-display">
                             Moyenne: <strong><?php echo isset($matiere['moyenne']) ? number_format($matiere['moyenne'], 2, ',', ' ') : 'N/A'; ?></strong>
-                            <?php
-                            $decision_text = 'EN ATTENTE';
-                            if (isset($matiere['moyenne'])) {
-                                $moyenne = $matiere['moyenne'];
-                                $seuil = $matiere['seuil_validation'] ?? 10.0;
-                                
-                                if ($moyenne < 7) {
-                                    $decision_text = 'NON VALIDÉ';
-                                } elseif ($moyenne >= 7 && $moyenne < $seuil) {
-                                    $decision_text = 'RATTRAPAGE';
-                                } elseif ($moyenne >= $seuil) {
-                                    $decision_text = 'VALIDÉ';
-                                }
-                            }
-                            ?>
-                            (<?php echo htmlspecialchars($decision_text); ?>)
+                            (<?php echo htmlspecialchars(strtoupper($matiere['decision'] ?? 'EN ATTENTE')); ?>)
                         </div>
                     </div>
                 <?php endforeach; 
@@ -128,12 +115,10 @@ foreach ($results as $row) {
                 $moyenne_generale = ($total_coeffs > 0) ? $total_points / $total_coeffs : null;
                 $decision_generale_text = 'EN ATTENTE';
                 if ($moyenne_generale !== null) {
-                    if ($moyenne_generale < 7) {
-                        $decision_generale_text = 'NON VALIDÉ';
-                    } elseif ($moyenne_generale >= 7 && $moyenne_generale < 10) {
+                    if ($moyenne_generale >= 10) {
+                        $decision_generale_text = 'ADMIS';
+                    } else {
                         $decision_generale_text = 'RATTRAPAGE';
-                    } elseif ($moyenne_generale >= 10) {
-                        $decision_generale_text = 'VALIDÉ';
                     }
                 }
                 ?>
@@ -148,5 +133,4 @@ foreach ($results as $row) {
         <?php endforeach; ?>
     <?php endif; ?>
 </div>
-
 

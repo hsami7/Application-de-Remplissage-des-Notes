@@ -922,27 +922,18 @@ function handle_change_period_status() {
 }
 
 /**
- * Calcule les moyennes pour une matière et une période données.
+ * Recalcule les moyennes pour une matière et une période données.
+ * Cette fonction est réutilisable et ne gère pas les redirections.
+ * @return bool True en cas de succès, false en cas d'échec.
  */
-function handle_calculate_averages() {
-    // Validation
-    $periode_id = filter_input(INPUT_POST, 'periode_id', FILTER_VALIDATE_INT);
-    $matiere_id = filter_input(INPUT_POST, 'matiere_id', FILTER_VALIDATE_INT);
-
-    $redirect_url = APP_URL . "/index.php?page=manage_formulas&periode_id=$periode_id&matiere_id=$matiere_id";
-
-    if (!$periode_id || !$matiere_id) {
-        $_SESSION['error_message'] = "Les champs période et matière sont obligatoires pour le calcul des moyennes.";
-        header('Location: ' . $redirect_url);
-        exit;
-    }
-
+function recalculate_averages_for_subject($matiere_id, $periode_id) {
     try {
         $pdo = getDBConnection();
-        require_once '../core/classes/FormulaParser.php';
+        if (!class_exists('FormulaParser')) {
+            require_once '../core/classes/FormulaParser.php';
+        }
         $parser = new FormulaParser();
 
-        // 1. Récupérer la formule et le seuil de validation
         $stmt_matiere_info = $pdo->prepare("
             SELECT f.formule, m.seuil_validation 
             FROM matieres m
@@ -956,22 +947,18 @@ function handle_calculate_averages() {
         $seuil_validation = $matiere_info['seuil_validation'] ?? 10.0;
 
         if (!$formule) {
-            throw new Exception("Aucune formule n'est définie pour cette matière pour la période sélectionnée.");
+            throw new Exception("Aucune formule n'est définie pour cette matière.");
         }
         
-        // 2. Récupérer les codes de colonnes pour cette matière/période
         $stmt_cols = $pdo->prepare("SELECT code_colonne FROM configuration_colonnes WHERE matiere_id = ? AND periode_id = ?");
         $stmt_cols->execute([$matiere_id, $periode_id]);
         $codes_colonnes = $stmt_cols->fetchAll(PDO::FETCH_COLUMN);
 
-        // 3. Récupérer les étudiants inscrits
         $stmt_etudiants = $pdo->prepare("SELECT etudiant_id FROM inscriptions_matieres WHERE matiere_id = ? AND periode_id = ?");
         $stmt_etudiants->execute([$matiere_id, $periode_id]);
         $etudiant_ids = $stmt_etudiants->fetchAll(PDO::FETCH_COLUMN);
 
-        // 4. Pour chaque étudiant, calculer et stocker la moyenne
         foreach ($etudiant_ids as $etudiant_id) {
-            // Récupérer les notes de l'étudiant avec leur statut
             $stmt_notes = $pdo->prepare("
                 SELECT cc.code_colonne, n.valeur, n.statut
                 FROM notes n
@@ -981,33 +968,24 @@ function handle_calculate_averages() {
             $stmt_notes->execute([$etudiant_id, $matiere_id, $periode_id]);
             $notes_raw = $stmt_notes->fetchAll(PDO::FETCH_ASSOC);
             
-            // Préparer le tableau de notes complet pour le parser
             $notes_for_parser = array_fill_keys($codes_colonnes, null);
             foreach ($notes_raw as $note) {
                 if ($note['statut'] === 'saisie') {
                     $notes_for_parser[$note['code_colonne']] = $note['valeur'];
                 } else {
-                    // Pour 'absent', 'dispense', etc., passer un code que le parser interprète comme NULL
                     $notes_for_parser[$note['code_colonne']] = strtoupper($note['statut']); 
                 }
             }
 
-            // Calculer la moyenne
             $moyenne = $parser->evaluer($formule, $notes_for_parser); 
 
-            // Déterminer la décision
             $decision = 'en_attente';
             if ($moyenne !== null) {
-                if ($moyenne < 7) {
-                    $decision = 'non_valide';
-                } elseif ($moyenne >= 7 && $moyenne < $seuil_validation) {
-                    $decision = 'rattrapage';
-                } elseif ($moyenne >= $seuil_validation) {
-                    $decision = 'valide';
-                }
+                if ($moyenne < 7) $decision = 'non_valide';
+                elseif ($moyenne >= 7 && $moyenne < $seuil_validation) $decision = 'rattrapage';
+                elseif ($moyenne >= $seuil_validation) $decision = 'valide';
             }
 
-            // Upsert dans la table des moyennes
             $stmt_check = $pdo->prepare("SELECT id FROM moyennes WHERE etudiant_id = ? AND matiere_id = ? AND periode_id = ?");
             $stmt_check->execute([$etudiant_id, $matiere_id, $periode_id]);
             $exists = $stmt_check->fetch();
@@ -1022,15 +1000,32 @@ function handle_calculate_averages() {
                 $stmt->execute([$etudiant_id, $matiere_id, $periode_id, $moyenne, $decision]);
             }
         }
-
-        $_SESSION['success_message'] = "Le calcul des moyennes a été effectué avec succès.";
-
+        return true;
     } catch (Exception $e) {
         $_SESSION['error_message'] = "Erreur lors du calcul : " . $e->getMessage();
         error_log("Formula Calculation Error: " . $e->getMessage());
+        return false;
+    }
+}
+
+/**
+ * Gère le déclenchement du calcul des moyennes depuis l'interface.
+ */
+function handle_calculate_averages() {
+    $periode_id = filter_input(INPUT_POST, 'periode_id', FILTER_VALIDATE_INT);
+    $matiere_id = filter_input(INPUT_POST, 'matiere_id', FILTER_VALIDATE_INT);
+    $redirect_url = APP_URL . "/index.php?page=manage_formulas&periode_id=$periode_id&matiere_id=$matiere_id";
+
+    if (!$periode_id || !$matiere_id) {
+        $_SESSION['error_message'] = "Les champs période et matière sont obligatoires pour le calcul des moyennes.";
+        header('Location: ' . $redirect_url);
+        exit;
     }
 
-    // Redirection
+    if (recalculate_averages_for_subject($matiere_id, $periode_id)) {
+        $_SESSION['success_message'] = "Le calcul des moyennes a été effectué avec succès.";
+    }
+    
     header('Location: ' . $redirect_url);
     exit;
 }
@@ -1061,5 +1056,78 @@ function handle_unlock_grades() {
     }
 
     header('Location: ' . APP_URL . '/index.php?page=view_progress');
+    exit;
+}
+function handle_update_all_grades_admin() {
+    authorize_user(['admin']);
+    $pdo = getDBConnection();
+
+    $grades = $_POST['grades'] ?? [];
+    $periode_id = filter_input(INPUT_POST, 'periode_id', FILTER_VALIDATE_INT);
+    $matiere_id = filter_input(INPUT_POST, 'matiere_id', FILTER_VALIDATE_INT);
+    $return_url = filter_input(INPUT_POST, 'return_url', FILTER_SANITIZE_URL);
+
+    if (empty($grades) || !$periode_id || !$matiere_id) {
+        $_SESSION['error_message'] = "Aucune donnée de note à enregistrer.";
+        header('Location: ' . ($return_url ?: APP_URL . '/index.php?page=view_grades_admin'));
+        exit;
+    }
+
+    try {
+        $pdo->beginTransaction();
+
+        $stmt_upsert = $pdo->prepare(
+            "INSERT INTO notes (etudiant_id, colonne_id, valeur, statut, saisi_par)
+             VALUES (:etudiant_id, :colonne_id, :valeur, :statut, :saisi_par)
+             ON DUPLICATE KEY UPDATE 
+                 valeur = VALUES(valeur), 
+                 statut = VALUES(statut), 
+                 saisi_par = VALUES(saisi_par), 
+                 date_modification = NOW()"
+        );
+
+        foreach ($grades as $etudiant_id => $colonnes) {
+            foreach ($colonnes as $colonne_id => $valeur) {
+                $statut = 'saisie';
+                $valeur_float = null;
+
+                // Handle special status strings
+                if (is_string($valeur)) {
+                    $upper_valeur = strtoupper(trim($valeur));
+                    if (in_array($upper_valeur, ['ABSENT', 'DISPENSE', 'DEFAILLANT'])) {
+                        $statut = strtolower($upper_valeur);
+                    } else {
+                        // It's a numeric value, convert it
+                        $valeur_float = floatval(str_replace(',', '.', $valeur));
+                    }
+                } else if (is_numeric($valeur)) {
+                     $valeur_float = floatval($valeur);
+                }
+
+
+                $stmt_upsert->execute([
+                    ':etudiant_id' => $etudiant_id,
+                    ':colonne_id' => $colonne_id,
+                    ':valeur' => ($statut === 'saisie') ? $valeur_float : null,
+                    ':statut' => $statut,
+                    ':saisi_par' => $_SESSION['user_id']
+                ]);
+            }
+        }
+
+        $pdo->commit();
+
+        // Recalculate averages for the subject
+        recalculate_averages_for_subject($matiere_id, $periode_id);
+        
+        $_SESSION['success_message'] = "Les notes ont été enregistrées avec succès.";
+
+    } catch (Exception $e) {
+        $pdo->rollBack();
+        $_SESSION['error_message'] = "Erreur lors de l'enregistrement des notes : " . $e->getMessage();
+    }
+
+    $redirect_to = $return_url ? urldecode($return_url) : APP_URL . "/index.php?page=view_grades_admin&matiere_id=$matiere_id&periode_id=$periode_id";
+    header('Location: ' . $redirect_to);
     exit;
 }

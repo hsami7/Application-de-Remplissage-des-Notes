@@ -115,7 +115,6 @@ if (!$matiere_id || !$periode_id) {
     }
     ?>
     <div class="page-container" style="max-width: 95%;">
-        <a href="?page=view_grades_admin" class="btn btn-back" style="margin-bottom: 1rem;">Retour à la sélection</a>
         <h2>Consultation des notes pour "<?php echo htmlspecialchars($context['matiere_nom'] . ' (' . $context['filiere_nom'] . ')'); ?>"</h2>
         <p>Période: <?php echo htmlspecialchars($context['periode_nom']); ?></p>
 
@@ -235,6 +234,9 @@ if (!$matiere_id || !$periode_id) {
                     </table>
                 </div>
             <?php endif; ?>
+        </div>
+        <div style="display: flex; justify-content: flex-end; margin-top: 1.5rem;">
+            <a href="?page=edit_all_grades&matiere_id=<?php echo $matiere_id; ?>&periode_id=<?php echo $periode_id; ?>" class="btn">Modifier les notes</a>
         </div>
     </div>
 <?php

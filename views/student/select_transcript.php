@@ -15,13 +15,26 @@ $periods = get_published_periods_for_student($student_id);
             Aucun relevé de notes n'est actuellement disponible au téléchargement.
         </div>
     <?php else: ?>
-        <div class="list-group">
-            <?php foreach ($periods as $period): ?>
-                <a href="?action=generate_transcript&periode_id=<?php echo $period['id']; ?>" class="list-group-item list-group-item-action">
-                    <?php echo htmlspecialchars($period['nom']); ?>
-                </a>
-            <?php endforeach; ?>
-        </div>
+        <table class="table" style="width: 100%; margin-top: 1.5rem;">
+            <thead>
+                <tr style="background-color: #f2f2f2;">
+                    <th style="padding: 12px;">Période</th>
+                    <th style="padding: 12px; text-align: center; width: 150px;">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                <?php foreach ($periods as $period): ?>
+                    <tr>
+                        <td style="padding: 12px; border-bottom: 1px solid #ddd;"><?php echo htmlspecialchars($period['nom']); ?></td>
+                        <td style="padding: 12px; border-bottom: 1px solid #ddd; text-align: center;">
+                            <a href="?action=generate_transcript&periode_id=<?php echo $period['id']; ?>" class="btn">
+                                Télécharger
+                            </a>
+                        </td>
+                    </tr>
+                <?php endforeach; ?>
+            </tbody>
+        </table>
     <?php endif; ?>
 
     <a href="?page=dashboard_student" class="btn btn-secondary mt-3">Retour au Tableau de Bord</a>

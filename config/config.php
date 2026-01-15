@@ -36,10 +36,15 @@ define('DB_CHARSET', 'utf8mb4');
 // =============================================
 
 /**
- * URL racine de l'application (à adapter à votre environnement)
- * Ex: http://localhost/mon-projet/
+ * Chemin racine absolu de l'application.
  */
-define('APP_URL', 'http://localhost/Application-de-Remplissage-des-Notes/public');
+define('ROOT_PATH', dirname(__DIR__));
+
+/**
+ * URL racine de l'application (chemin absolu depuis la racine du domaine).
+ * Ce chemin doit être correct pour que les liens, les styles et les formulaires fonctionnent.
+ */
+define('APP_URL', '/Application-de-Remplissage-des-Notes/public');
 
 /**
  * Nom de l'application
