@@ -69,5 +69,5 @@ Pour exécuter cette application, un environnement de serveur web local comme XA
     *   `nom`: `Admin`
     *   `prenom`: `Super`
     *   `email`: `admin@example.com`
-    *   `mot_de_passe`: `password` (Le hash BCRYPT pour "password" est : `$2a$12$dNqSwSXB4kQczie2Q4mQMuvKstxAgsiER350oW0cr0MpYeWsXwMzu`)
+    *   `mot_de_passe`: `password` (Le hash BCRYPT pour "admin" est : `$2a$12$dNqSwSXB4kQczie2Q4mQMuvKstxAgsiER350oW0cr0MpYeWsXwMzu`)
     *   `role`: `admin`
